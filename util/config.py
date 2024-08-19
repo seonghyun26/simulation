@@ -13,15 +13,14 @@ def init_args():
     # Parser
     parser = argparse.ArgumentParser(description="Simulation script")
 
-    parser.add_argument("--molecule", type=str, help="Path to the PDB file", default="ad")
+    parser.add_argument("--molecule", type=str, help="Path to the PDB file", default="alanine")
 
-    # Simluation physcial environment
+    # Simluation arguments
+    parser.add_argument("--state", type=str, help="Molecule state to start the simulation", default="c5")
     parser.add_argument("--force_field", type=str, help="Force field to use", default="amber14")
     parser.add_argument("--solvent", type=str, help="Solvent to use", default="tip3p")
     parser.add_argument("--temperature", type=float, help="Temperature to use", default=300)
     parser.add_argument("--time", type=int, help="Total simulation steps", default=1e+8)
-
-    # Simluation platform environment
     parser.add_argument("--platform", type=str, help="Platform to use", default="OpenCL")
     parser.add_argument("--precision", type=str, help="Precision to use", default="single")
 
@@ -35,21 +34,13 @@ def init_args():
     return args
 
 
-def set_molecule(molecule_name):
-    if molecule_name == "ad-c5":
-        pdb_file_name = "alanine/c5.pdb"
-    elif molecule_name == "ad-c7ax":
-        pdb_file_name = "alanine/c7ax.pdb"
-    elif molecule_name == "ad-pii":
-        pdb_file_name = "alanine/pII.pdb"
-    elif molecule_name == "ad-alpha_L":
-        pdb_file_name = "alanine/alpha_L.pdb"
-    elif molecule_name == "ad-alpha_R":
-        pdb_file_name = "alanine/alpha_R.pdb"
-    elif molecule_name == "ad-alpha_P":
-        pdb_file_name = "alanine/alpha_P.pdb"
+def set_molecule(molecule, state):
+    if molecule == "alanine" and state in [
+        "c5", "c7", "c7ax", "pII", "alpha_L", "alpha_R", "alpha_P"
+    ]:
+        pdb_file_name = f"alanine/{state}.pdb"
     else:
-        raise ValueError(f"Molecule {molecule_name} not recognized")
+        raise ValueError(f"Molecule {molecule} not recognized")
     
     pdb = PDBFile("./data/" + pdb_file_name) 
     return pdb

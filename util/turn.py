@@ -4,8 +4,8 @@ from rdkit.Chem import Draw
 import numpy as np
 
 # Load your molecule (replace 'molecule.sdf' with your actual file)
-org_state = "c5"
-new_state = "alpha_L"
+org_state = "c7ax"
+new_state = "c7"
 assert org_state != new_state, "Origin and new state should be different"
 molecule = Chem.MolFromPDBFile(f'../data/alanine/{org_state}.pdb', removeHs=False)
 
@@ -34,8 +34,8 @@ print("<-------------------------->\n")
 
 
 # Set new dihedrals
-new_phi = 40
-new_psi = 65
+new_phi = 50
+new_psi = -100
 print("<--- Modified dihedrals --->")
 print(new_phi, new_psi)
 print("<-------------------------->")

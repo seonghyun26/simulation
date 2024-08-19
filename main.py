@@ -10,12 +10,9 @@ import matplotlib.pyplot as plt
 from sys import stdout
 from matplotlib.gridspec import GridSpec
 
-from openmm import *
-from openmm.app import *
-from openmm.unit import *
-
-from util.plot import plot_ramachandran
 from util.config import *
+from util.simulation import *
+from util.plot import plot_ramachandran
 
 os.environ["OPENMM_PLUGIN_DIR"] = "/home/shpark/.conda/envs/cv/lib/python3.9/site-packages/OpenMM.libs/lib"
 print(os.environ["OPENMM_PLUGIN_DIR"])
@@ -26,8 +23,8 @@ if __name__ == "__main__":
     args = init_args()
     log_dir = set_logging(args)
     
-    # Load molecule, forcefield, platform, precision
-    pdb = set_molecule(args.molecule)
+    # Load molecule, forcefield, platform, precision and set simluation
+    start_pdb = set_molecule(args.molecule, args.state)
     forcefield_files = set_force_field(args.force_field, args.solvent)
     platform, properties = set_platform(args.platform, args.precision)
     print(f">> Molecule: {args.molecule}")
@@ -37,26 +34,27 @@ if __name__ == "__main__":
     print(f">> Platform, precision: {args.platform}, {args.precision}")
         
     # Set forcefield, system, integrator, simulations
-    forcefield = ForceField(*forcefield_files)
-    system = forcefield.createSystem(
-        pdb.topology,
-        nonbondedCutoff=3 * nanometer,
-        constraints=HBonds
-    )
-    integrator = LangevinIntegrator(
-        args.temperature * kelvin,
-        1 / picosecond,
-        1 * femtoseconds
-    )
-    simulation = Simulation(
-        pdb.topology,
-        system,
-        integrator,
-        platform,
-        properties
-    )
-    simulation.context.setPositions(pdb.positions)
-    simulation.minimizeEnergy()
+    # forcefield = ForceField(*forcefield_files)
+    # system = forcefield.createSystem(
+    #     start_pdb.topology,
+    #     nonbondedCutoff=3 * nanometer,
+    #     constraints=HBonds
+    # )
+    # integrator = LangevinIntegrator(
+    #     args.temperature * kelvin,
+    #     1 / picosecond,
+    #     1 * femtoseconds
+    # )
+    # simulation = Simulation(
+    #     start_pdb.topology,
+    #     system,
+    #     integrator,
+    #     platform,
+    #     properties
+    # )
+    # simulation.context.setPositions(start_pdb.positions)
+    # simulation.minimizeEnergy()
+    simulation = set_simulation(args, forcefield_files, start_pdb, platform, properties)
     
     # Set simulation reporters
     time_horizon = args.time
@@ -97,6 +95,3 @@ if __name__ == "__main__":
     
     simulation.minimizeEnergy()
     
-    
-    # traj_file = mdtraj.load(traj_file_name, top=pdb_file_name)
-    # plot_ramachandran(traj_file, molecule_name)
