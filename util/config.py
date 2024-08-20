@@ -35,10 +35,13 @@ def init_args():
 
 
 def set_molecule(molecule, state):
-    if molecule == "alanine" and state in [
-        "c5", "c7", "c7ax", "pII", "alpha_L", "alpha_R", "alpha_P"
-    ]:
-        pdb_file_name = f"alanine/{state}.pdb"
+    if molecule == "alanine":
+        if state in [
+            "c5", "c7", "c7ax", "pII", "alpha_L", "alpha_R", "alpha_P", "debug"
+        ]:
+            pdb_file_name = f"alanine/{state}.pdb"
+        else:
+            raise ValueError(f"State {state} not recognized")
     else:
         raise ValueError(f"Molecule {molecule} not recognized")
     
@@ -86,7 +89,7 @@ def set_platform(platform, precision):
 def set_logging(args):
     kst = pytz.timezone('Asia/Seoul')
     current_date = datetime.now(kst).strftime("%m%d-%H:%M:%S")
-    log_dir = f"./log/{args.molecule}/{current_date}"
+    log_dir = f"./log/{args.molecule}/{args.state}/{current_date}"
     
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
