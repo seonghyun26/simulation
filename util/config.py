@@ -46,9 +46,6 @@ def set_molecule(molecule, state):
     return pdb
 
 def set_force_field(force_field, solvent):
-    print(">> Force field: ", force_field)
-    print(">> Solvent: ", solvent)
-    
     files = []
     
     if force_field == "amber14":

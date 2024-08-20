@@ -1,7 +1,8 @@
 cd ../../
 
 CUDA_VISIBLE_DEVICES=$1 python main.py \
-  --molecule ad-pii \
+  --molecule alanine \
+  --state $2 \
   --force_field amber99 \
   --solvent tip3p \
   --temperature 200 \

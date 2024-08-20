@@ -1,10 +1,11 @@
 cd ../../
 
 CUDA_VISIBLE_DEVICES=$1 python main.py \
-  --molecule ad-c5 \
+  --molecule alanine \
+  --state c7ax \
   --force_field amber99 \
   --solvent tip3p \
-  --temperature 600 \
+  --temperature 900 \
   --time 100_000_000 \
   --platform OpenCL \
   --precision mixed
