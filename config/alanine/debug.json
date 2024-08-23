@@ -1,0 +1,13 @@
+{
+  "force_field": "amber99",
+  "freq_csv": 1000,
+  "freq_dcd": 1,
+  "freq_stdout": 10000,
+  "molecule": "alanine",
+  "platform": "OpenCL",
+  "precision": "mixed",
+  "solvent": "tip3p",
+  "state": "c7ax",
+  "temperature": 300.0,
+  "time": 100000000
+}

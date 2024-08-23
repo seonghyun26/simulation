@@ -27,34 +27,14 @@ if __name__ == "__main__":
     start_pdb = set_molecule(args.molecule, args.state)
     forcefield_files = set_force_field(args.force_field, args.solvent)
     platform, properties = set_platform(args.platform, args.precision)
+    simulation = set_simulation(args, forcefield_files, start_pdb, platform, properties)
+    
     print(f">> Molecule: {args.molecule}")
     print(f">> Force field: {forcefield_files}")
     print(f">> Time horizon : {args.time}")
     print(f">> Temperature: {args.temperature}")
     print(f">> Platform, precision: {args.platform}, {args.precision}")
-        
-    # Set forcefield, system, integrator, simulations
-    # forcefield = ForceField(*forcefield_files)
-    # system = forcefield.createSystem(
-    #     start_pdb.topology,
-    #     nonbondedCutoff=3 * nanometer,
-    #     constraints=HBonds
-    # )
-    # integrator = LangevinIntegrator(
-    #     args.temperature * kelvin,
-    #     1 / picosecond,
-    #     1 * femtoseconds
-    # )
-    # simulation = Simulation(
-    #     start_pdb.topology,
-    #     system,
-    #     integrator,
-    #     platform,
-    #     properties
-    # )
-    # simulation.context.setPositions(start_pdb.positions)
-    # simulation.minimizeEnergy()
-    simulation = set_simulation(args, forcefield_files, start_pdb, platform, properties)
+    
     
     # Set simulation reporters
     time_horizon = args.time

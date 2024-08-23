@@ -13,9 +13,11 @@ def init_args():
     # Parser
     parser = argparse.ArgumentParser(description="Simulation script")
 
-    parser.add_argument("--molecule", type=str, help="Path to the PDB file", default="alanine")
+    # Config file
+    parser.add_argument("--config", type=str, help="Path to the config file", default="config/alanine/debug.json")
 
     # Simluation arguments
+    parser.add_argument("--molecule", type=str, help="Path to the PDB file", default="alanine")
     parser.add_argument("--state", type=str, help="Molecule state to start the simulation", default="c5")
     parser.add_argument("--force_field", type=str, help="Force field to use", default="amber14")
     parser.add_argument("--solvent", type=str, help="Solvent to use", default="tip3p")
