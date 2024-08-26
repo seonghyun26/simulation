@@ -10,7 +10,6 @@ from openmm.app import *
 from openmm.unit import *
 
 def init_args():
-    # Parser
     parser = argparse.ArgumentParser(description="Simulation script")
 
     # Config file
@@ -26,13 +25,19 @@ def init_args():
     parser.add_argument("--platform", type=str, help="Platform to use", default="OpenCL")
     parser.add_argument("--precision", type=str, help="Precision to use", default="single")
 
-    # Logging intervals
-    parser.add_argument("--freq_dcd", type=int, help="Logging interval for dcd", default="1")
+    # Logging
+    parser.add_argument("--log_stdout", type=bool, help="Loggin for stdout", default=False)
+    parser.add_argument("--log_dcd", type=bool, help="Loggin for dcd", default=True)
+    parser.add_argument("--log_csv", type=bool, help="Loggin for csv", default=True)
     parser.add_argument("--freq_stdout", type=int, help="Logging interval for stdout", default="10_000")
+    parser.add_argument("--freq_dcd", type=int, help="Logging interval for dcd", default="1")
     parser.add_argument("--freq_csv", type=int, help="Logging interval for csv", default="1_000")
 
     args = parser.parse_args()
-
+    for key, value in vars(args).items():
+        print(f">> {key}: {value}")
+    print("\n")
+        
     return args
 
 
@@ -49,6 +54,7 @@ def set_molecule(molecule, state):
     
     pdb = PDBFile("./data/" + pdb_file_name) 
     return pdb
+
 
 def set_force_field(force_field, solvent):
     files = []
@@ -70,6 +76,7 @@ def set_force_field(force_field, solvent):
 
     return files
 
+
 def set_platform(platform, precision):
     if platform == "CPU":
         platform = Platform.getPlatformByName('CPU')
@@ -87,17 +94,54 @@ def set_platform(platform, precision):
         raise ValueError(f"Platform {platform} not recognized")
     
     return platform, properties
-
+    
+    
 def set_logging(args):
-    kst = pytz.timezone('Asia/Seoul')
-    current_date = datetime.now(kst).strftime("%m%d-%H:%M:%S")
-    log_dir = f"./log/{args.molecule}/{args.state}/{current_date}"
+    # Set logging directory
+    # kst = pytz.timezone('Asia/Seoul')
+    # current_date = datetime.now(kst).strftime("%m%d-%H:%M")
+    log_dir = f"./log/{args.molecule}/{args.temperature}/{args.state}"
     
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
-    
+    else:
+        raise ValueError(f"Directory {log_dir} already exists")
     with open(f"{log_dir}/args.json", 'w') as f:
         json.dump(vars(args), f, sort_keys=True, indent=4)
-        
-    return log_dir
     
+    
+    # Set reporters
+    reporters = []
+    traj_file_name = f"{log_dir}/traj.dcd"
+    csv_file_name = f"{log_dir}/scalars.csv"
+    if args.log_stdout:
+        reporters.append(
+            StateDataReporter(
+                stdout,
+                reportInterval=args.freq_stdout,
+                step=True,
+                time=True,
+                potentialEnergy=True,
+                temperature=True,
+                progress=True,
+                elapsedTime=True,
+                totalSteps=args.time
+        ))
+    if args.log_dcd:
+        reporters.append(
+            DCDReporter(
+                file=traj_file_name,
+                reportInterval=args.freq_dcd
+        ))
+    if args.log_csv:
+        reporters.append(
+            StateDataReporter(
+                csv_file_name,
+                reportInterval=args.freq_csv,
+                time=True,
+                potentialEnergy=True,
+                totalEnergy=True,
+                temperature=True,
+        ))
+    
+    return reporters
