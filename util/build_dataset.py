@@ -30,40 +30,85 @@ args = parser.parse_args()
 
 class MD_Dataset(Dataset):
     def __init__(self, traj, config):
-        self.molecule = config.molecule
-        self.state = config.state
-        self.temperature = config.temperature
-        self.time = config.time
-        self.force_field = config.force_field
-        self.solvent = config.solvent
-        self.platform = config.platform
-        self.precision = config.precision
+        self.molecule = config['molecule']
+        self.state = config['state']
+        self.temperature = config['temperature']
+        self.time = config['time']
+        self.force_field = config['force_field']
+        self.solvent = config['solvent']
+        self.platform = config['platform']
+        self.precision = config['precision']
         
-        for t in tqdm(config['time']):
-            current_state = loaded_traj[t].xyz.reshape(-1)
-            next_state = loaded_traj[t+1].xyz.reshape(-1)
+        data_x_list = []
+        data_y_list = []
+        for t in tqdm(
+            range(self.time -1),
+            desc="Loading data"
+        ):
+            current_state = torch.tensor(loaded_traj[t].xyz.squeeze())
+            next_state = torch.tensor(loaded_traj[t+1].xyz.squeeze())
+            data_x_list.append(current_state)
+            data_y_list.append(next_state)
+        self.x = torch.stack(data_x_list)
+        self.y = torch.stack(data_y_list)
         
+        self.sanity_check(loaded_traj)
+    
+    def sanity_check(self, loaded_traj):
+        # print("Running sanity check...")
+        # print(f">> x size: {self.x.shape}")
+        # print(f">> y size: {self.y.shape}")
+        assert torch.equal(x.shape, y.shape), f"Shape of x and y not equal"
+        
+        for t in tqdm(
+            range(self.time -1),
+            desc="Sanity check"
+        ):
+            x = self.x[t]
+            y = self.y[t]
+            x_frame = torch.tensor(loaded_traj[t].xyz.squeeze())
+            y_frame = torch.tensor(loaded_traj[t+1].xyz.squeeze())
+            
+            assert torch.equal(x, x_frame), f"Frame {t}, x not equal"
+            assert torch.equal(y, y_frame), f"Frame {t+1}, y not equal"        
+            
+
+    def __getitem__(self, index):
+	    return self.x[index], self.y[index]
+ 
+    def __len__(self):
+	    return self.x.shape[0]
+
 
 if __name__ == "__main__":
-    print("Loading trajectory...")
-    for key, value in vars(args).items():
-        print(f">> {key}: {value}")
+    # Load config
+    # for key, value in vars(args).items():
+    #     print(f">> {key}: {value}")
     result_dir = f"../log/{args.molecule}/{args.temperature}/{args.state}"
     pdb_file = f"../data/{args.molecule}/{args.state}.pdb"
     arg_file = f"{result_dir}/args.json"
     with open(arg_file, 'r') as f:
         config = json.load(f)
-        print(">> Loaded config")
-        pprint.pprint(config)
+        # print(">> Loaded config")
+        # pprint.pprint(config)
+    
+    # Load trajectory
+    # print("Loading trajectory...")
     start = time.time()
     loaded_traj = mdtraj.load(
         f"{result_dir}/traj.dcd",
         top=pdb_file
     )
     end = time.time()
-    print(f"Done.!! ({end - start:.2f} sec)\n")
+    # print(f"Done.!! ({end - start:.2f} sec)\n")
     
-    print("Building dataset...")
+    # Build dataset
+    print(f"Building dataset for {args.temperature}K, sttate {args.molecule} ...")
     dataset = MD_Dataset(loaded_traj, config)
-    torch.save(dataset, f"../dataset/{args.molecule}/{args.temperature}/{args.state}.pt")
+    save_dir = f"../dataset/{args.molecule}/{args.temperature}"
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
+    else:
+        raise ValueError(f"Directory {save_dir} already exists")
+    torch.save(dataset, f"{save_dir}/{args.state}.pt")
     print("Done.!!")

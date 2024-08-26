@@ -11,7 +11,6 @@ from sys import stdout
 from matplotlib.gridspec import GridSpec
 
 from util.config import *
-from util.simulation import *
 from util.plot import plot_ramachandran
 
 os.environ["OPENMM_PLUGIN_DIR"] = "/home/shpark/.conda/envs/cv/lib/python3.9/site-packages/OpenMM.libs/lib"
@@ -21,7 +20,7 @@ if __name__ == "__main__":
     # Load configs and save them
     print(f"Loading configs...")
     args = init_args()
-    log_dir = set_logging(args)
+    time_horizon = args.time
     
     # Prepare simluation
     start_pdb = set_molecule(args.molecule, args.state)
