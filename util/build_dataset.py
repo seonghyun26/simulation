@@ -25,11 +25,14 @@ parser = argparse.ArgumentParser(description="Dataset builder")
 parser.add_argument("--molecule", type=str, help="Path to the PDB file", default="alanine")
 parser.add_argument("--state", type=str, help="Molecule state to start the simulation", default="c5")
 parser.add_argument("--temperature", type=float, help="Temperature to use", default=273.0)
+parser.add_argument("--index", type=str, help="Indexing at dataset", default="")
+parser.add_argument("--percent", type=int, help="How much precent to use from dataset", default=10)
+
 args = parser.parse_args()
 
 
 class MD_Dataset(Dataset):
-    def __init__(self, loaded_traj, config):
+    def __init__(self, loaded_traj, config, args):
         self.molecule = config['molecule']
         self.state = config['state']
         self.temperature = config['temperature']
@@ -42,17 +45,35 @@ class MD_Dataset(Dataset):
         
         data_x_list = []
         data_y_list = []
+        data_interval_list = []
         traj = loaded_traj.xyz.squeeze()
-        for t in tqdm(
-            range((self.time -1) // 10),
-            desc="Loading data"
-        ):
-            current_state = torch.tensor(loaded_traj[t].xyz.squeeze()).to(self.device)
-            next_state = torch.tensor(loaded_traj[t+1].xyz.squeeze()).to(self.device)
-            data_x_list.append(current_state)
-            data_y_list.append(next_state)
+        
+        if args.index == "random":
+            random_indices = random.sample(range(0, self.time - 1), self.time // args.percent)
+            for t in tqdm(
+                random_indices,
+                desc="Loading data by random idx"
+            ):
+                random_interval = random.sample(range(1, self.time - t), 1)[0]
+                current_state = torch.tensor(loaded_traj[t].xyz.squeeze()).to(self.device)
+                next_state = torch.tensor(loaded_traj[t+random_interval].xyz.squeeze()).to(self.device)
+                data_x_list.append(current_state)
+                data_y_list.append(next_state)
+                data_interval_list.append(random_interval)
+        else:
+            for t in tqdm(
+                range((self.time -1) // args.percent),
+                desc=f"Loading {args.precent} precent of dataset from initial frame"
+            ):
+                current_state = torch.tensor(loaded_traj[t].xyz.squeeze()).to(self.device)
+                next_state = torch.tensor(loaded_traj[t+1].xyz.squeeze()).to(self.device)
+                data_x_list.append(current_state)
+                data_y_list.append(next_state)
+                data_interval_list.append(1)
+                
         self.x = torch.stack(data_x_list).to(self.device)
         self.y = torch.stack(data_y_list).to(self.device)
+        self.delta_t = torch.tensor(data_interval_list).to(self.device)
         
         # self.sanity_check(loaded_traj)
     
@@ -94,6 +115,7 @@ if __name__ == "__main__":
         # print(">> Loaded config")
         # pprint.pprint(config)
     
+    
     # Load trajectory
     # print("Loading trajectory...")
     start = time.time()
@@ -104,14 +126,19 @@ if __name__ == "__main__":
     end = time.time()
     # print(f"Done.!! ({end - start:.2f} sec)\n")
     
+    
     # Build dataset
-    print(f"Building dataset for {args.temperature}K, state {args.state} ...")
-    dataset = MD_Dataset(loaded_traj, config)
+    dataset = MD_Dataset(loaded_traj, config, args)
     save_dir = f"../dataset/{args.molecule}/{args.temperature}"
+    file_name = f"{args.state}-{args.index}"
+    print(f"Creating dataset for {args.temperature}K, state {args.state} at {save_dir}/{file_name}...")
+    
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
-    if os.path.exists(f"{save_dir}/{args.state}.pt"):
-        raise ValueError(f"Folder {save_dir}/{args.state}.pt already exists")
+        
+    if os.path.exists(f"{save_dir}/{file_name}.pt"):
+        raise ValueError(f"Folder {save_dir}/{file_name}.pt already exists")
     else:
-        torch.save(dataset, f"{save_dir}/{args.state}.pt")
-    print("Done.!!")
+        torch.save(dataset, f"{save_dir}/{file_name}.pt")
+    
+    print(f"Dataset {save_dir}/{file_name} created!!!")

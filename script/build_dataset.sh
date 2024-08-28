@@ -7,5 +7,6 @@ do
     CUDA_VISIBLE_DEVICES=$(($i + 2)) python build_dataset.py \
         --molecule alanine \
         --state $1 \
-        --temperature ${TEMP[i]} &
+        --temperature ${TEMP[i]} \
+        --index random &
 done
