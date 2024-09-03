@@ -1,6 +1,7 @@
 cd ../util
 
-CUDA_VISIBLE_DEVICES=7 python build_dataset.py \
+CUDA_VISIBLE_DEVICES=$1 python build_dataset.py \
     --molecule alanine \
-    --state alpha_P \
-    --temperature 100
+    --state c5 \
+    --temperature 273.0 \
+    --index random 
