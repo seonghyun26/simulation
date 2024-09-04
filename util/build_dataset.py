@@ -38,7 +38,7 @@ class MD_Dataset(Dataset):
         self.solvent = config['solvent']
         self.platform = config['platform']
         self.precision = config['precision']
-        self.device = "cuda"
+        self.device = "cpu"
         
         data_x_list = []
         data_y_list = []
