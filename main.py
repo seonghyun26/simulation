@@ -41,4 +41,5 @@ if __name__ == "__main__":
     simulation.step(time_horizon)
     print(">> Simulation finished!!!")
 
+    simulation.minimizeEnergy()
     

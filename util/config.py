@@ -29,9 +29,9 @@ def init_args():
     parser.add_argument("--log_stdout", type=bool, help="Loggin for stdout", default=False)
     parser.add_argument("--log_dcd", type=bool, help="Loggin for dcd", default=True)
     parser.add_argument("--log_csv", type=bool, help="Loggin for csv", default=True)
-    parser.add_argument("--freq_stdout", type=int, help="Logging interval for stdout", default="10_000")
+    parser.add_argument("--freq_stdout", type=int, help="Logging interval for stdout", default="1_000")
     parser.add_argument("--freq_dcd", type=int, help="Logging interval for dcd", default="1")
-    parser.add_argument("--freq_csv", type=int, help="Logging interval for csv", default="1_000")
+    parser.add_argument("--freq_csv", type=int, help="Logging interval for csv", default="1")
 
     args = parser.parse_args()
     for key, value in vars(args).items():
