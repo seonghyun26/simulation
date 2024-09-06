@@ -46,7 +46,7 @@ class MD_Dataset(Dataset):
         data_goal_list = []
         
         if args.index == "random":
-            random_indices = random.sample(range(0, self.time - 1), self.time // args.percent)
+            random_indices = np.random.choice(self.time - 1, self.time // args.percent, replace=True)
             for t in tqdm(
                 random_indices,
                 desc="Loading data by random idx"
@@ -92,7 +92,7 @@ class MD_Dataset(Dataset):
             y_frame = torch.tensor(loaded_traj[t+1].xyz.squeeze()).to(self.device)
             
             assert torch.equal(x, x_frame), f"Frame {t}, x not equal"
-            assert torch.equal(y, y_frame), f"Frame {t+1}, y not equal"        
+            assert torch.equal(y, y_frame), f"Frame {t+1}, y not equal"
         
     def __getitem__(self, index):
 	    return self.x[index], self.y[index], self.goal[index], self.delta_time[index]

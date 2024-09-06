@@ -1,6 +1,6 @@
 cd ../../
 
-for state in "c5" "c7ax"
+for state in "alpha_L" "alpha_P" "alpha_R" "pII"
 do
     CUDA_VISIBLE_DEVICES=$1 python main.py \
         --molecule alanine \

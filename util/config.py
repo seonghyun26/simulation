@@ -129,6 +129,7 @@ def set_logging(args):
     # kst = pytz.timezone('Asia/Seoul')
     # current_date = datetime.now(kst).strftime("%m%d-%H:%M")
     log_dir = f"./log/{args.molecule}/{args.temperature}/{args.state}"
+    # log_dir = f"./log/{args.molecule}/{args.temperature}-short/{args.state}"
     
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
