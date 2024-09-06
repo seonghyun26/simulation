@@ -1,5 +1,7 @@
 cd ../../
 
+time=100_000_000
+
 TEMP=( 100 200 300 400 500 600)
 for (( i=0; i<${#TEMP[@]}; i++ ));
 do
@@ -9,7 +11,7 @@ do
     --temperature ${TEMP[i]} \
     --force_field amber99 \
     --solvent tip3p \
-    --time 100_000_000 \
+    --time $time \
     --platform OpenCL \
     --precision mixed &
 
@@ -21,7 +23,7 @@ do
     --temperature ${TEMP[i]} \
     --force_field amber99 \
     --solvent tip3p \
-    --time 100_000_000 \
+    --time $time \
     --platform OpenCL \
     --precision mixed &
 
@@ -33,7 +35,7 @@ do
     --temperature ${TEMP[i]} \
     --force_field amber99 \
     --solvent tip3p \
-    --time 100_000_000 \
+    --time $time \
     --platform OpenCL \
     --precision mixed &
 done
