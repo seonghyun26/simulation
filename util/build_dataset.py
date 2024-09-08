@@ -46,7 +46,7 @@ class MD_Dataset(Dataset):
         data_goal_list = []
         
         if args.index == "random":
-            random_indices = np.random.choice(self.time - 1, self.time // args.percent, replace=True)
+            random_indices = np.random.choice(self.time - 1, args.data_size, replace=True)
             for t in tqdm(
                 random_indices,
                 desc="Loading data by random idx"
@@ -60,6 +60,20 @@ class MD_Dataset(Dataset):
                 data_y_list.append(next_state)
                 data_goal_list.append(goal_state)
                 data_interval_list.append(torch.tensor(random_interval).to(self.device).unsqueeze(0))
+        elif args.index == "goal":
+            random_indices = np.random.choice(self.time - 1, args.data_size, replace=True)
+            for t in tqdm(
+                random_indices,
+                desc="Loading data by random idx"
+            ):
+                current_state = torch.tensor(loaded_traj[t+1].xyz.squeeze()).to(self.device)
+                next_state = torch.tensor(loaded_traj[t].xyz.squeeze()).to(self.device)
+                goal_state = torch.tensor(loaded_traj[0].xyz.squeeze()).to(self.device)
+                
+                data_x_list.append(current_state)
+                data_y_list.append(next_state)
+                data_goal_list.append(goal_state)
+                data_interval_list.append(torch.tensor(t).to(self.device).unsqueeze(0))
         else:
             for t in tqdm(
                 range((self.time -1) // args.percent),
@@ -108,7 +122,7 @@ parser.add_argument("--molecule", type=str, help="Path to the PDB file", default
 parser.add_argument("--state", type=str, help="Molecule state to start the simulation", default="c5")
 parser.add_argument("--temperature", type=float, help="Temperature to use", default=273.0)
 parser.add_argument("--index", type=str, help="Indexing at dataset", default="")
-parser.add_argument("--percent", type=int, help="How much precent to use from dataset", default=10)
+parser.add_argument("--data_size", type=int, help="Dataset size", default=1000)
 parser.add_argument("--verbose", type=bool, help="Verbose mode", default=True)
 
 args = parser.parse_args()
@@ -126,13 +140,13 @@ if __name__ == "__main__":
     arg_file = f"{result_dir}/args.json"
     with open(arg_file, 'r') as f:
         config = json.load(f)
-        print_verbose(">> Loaded config", args.verbose)
+        print_verbose(">> Loading config", args.verbose)
         print_verbose(config, args.verbose)
         
     
     # Check directory
     save_dir = f"../dataset/{args.molecule}/{args.temperature}"
-    file_name = f"{args.state}-{args.index}"
+    file_name = f"{args.state}-{args.data_size}-{args.index}"
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
     if os.path.exists(f"{save_dir}/{file_name}.pt"):
