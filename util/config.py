@@ -26,9 +26,10 @@ def init_args():
     parser.add_argument("--precision", type=str, help="Precision to use", default="single")
 
     # Logging
-    parser.add_argument("--log_stdout", type=bool, help="Loggin for stdout", default=False)
-    parser.add_argument("--log_dcd", type=bool, help="Loggin for dcd", default=True)
-    parser.add_argument("--log_csv", type=bool, help="Loggin for csv", default=True)
+    parser.add_argument("--index", type=int, help="Index of simulation", default="0")
+    parser.add_argument("--log_stdout", type=bool, help="Loggin gfor stdout", default=False)
+    parser.add_argument("--log_dcd", type=bool, help="Logging for dcd", default=True)
+    parser.add_argument("--log_csv", type=bool, help="Logging for csv", default=True)
     parser.add_argument("--freq_stdout", type=int, help="Logging interval for stdout", default="1_000")
     parser.add_argument("--freq_dcd", type=int, help="Logging interval for dcd", default="1")
     parser.add_argument("--freq_csv", type=int, help="Logging interval for csv", default="1")
@@ -128,7 +129,7 @@ def set_logging(args):
     # Set logging directory
     # kst = pytz.timezone('Asia/Seoul')
     # current_date = datetime.now(kst).strftime("%m%d-%H:%M")
-    log_dir = f"./log/{args.molecule}/{args.temperature}/{args.state}"
+    log_dir = f"./log/{args.molecule}/{args.temperature}/{args.state}-{args.time}/{args.index}"
     # log_dir = f"./log/{args.molecule}/{args.temperature}-short/{args.state}"
     
     if not os.path.exists(log_dir):
