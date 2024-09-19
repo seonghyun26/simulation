@@ -1,0 +1,61 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "MD Simulation",
+      "type": "debugpy",
+      "request": "launch",
+      "env": {
+        "CUDA_VISIBLE_DEVICES": "0"
+      },
+      "cwd": "/home/shpark/prj-cmd/simulation",
+      "program": "main.py",
+      "console": "integratedTerminal",
+      // "args": [
+      //   "--molecule",
+      //   "alanine",
+      //   "--state",
+      //   "c5",
+      //   "--force_field",
+      //   "amber99",
+      //   "--solvent",
+      //   "tip3p",
+      //   "--temperature",
+      //   "200",
+      //   "--time",
+      //   "100",
+      //   "--platform",
+      //   "OpenCL",
+      //   "--precision",
+      //   "mixed",
+      //   "--freq_csv",
+      //   "10"
+      // ]
+    },
+    {
+      "name": "MD Dataset",
+      "type": "debugpy",
+      "request": "launch",
+      "env": {
+        "CUDA_VISIBLE_DEVICES": "0"
+      },
+      "cwd": "/home/shpark/prj-cmd/simulation",
+      "program": "build_dataset.py",
+      "console": "integratedTerminal",
+      "args": [
+        "--molecule",
+        "alanine",
+        "--state",
+        "c5",
+        "--temperature",
+        "273.0",
+        "--sim_length",
+        "1000",
+        "--dataset_type",
+        "multi-next-ic",
+        "--dataset_version",
+        "v1"
+      ]
+    }
+  ]
+}

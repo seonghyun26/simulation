@@ -1,15 +1,24 @@
+import json
 import torch
-import random 
+import pprint
+import mdtraj
+import random
+import pandas
 
 import numpy as np
+
+from tqdm import tqdm
 
 from openmm import *
 from openmm.app import *
 from openmm.unit import *
 
-from tqdm import tqdm
 from torch.utils.data import Dataset
 
+from util.ic import load_ic_transform
+from util.dataset_config import init_dataset_args
+
+# MD dataset class
 class MD_Dataset(Dataset):
     def __init__(
         self,
@@ -93,7 +102,7 @@ class MD_Dataset(Dataset):
                 desc="Multi goal dataset construction with ic"
             ):
                 current_state = torch.tensor(loaded_traj[t].xyz.squeeze())
-                xyz2ic = load_internal_coordinate_transform()
+                xyz2ic = load_ic_transform()
                 current_state_ic = xyz2ic(current_state.unsqueeze(0))
                 
                 # Short simulation, get next_state and goal_state
@@ -196,3 +205,44 @@ class MD_Dataset(Dataset):
         goal_state = torch.tensor(self.simulation.context.getState(getPositions=True).getPositions().value_in_unit(nanometer))
         
         return next_state, goal_state
+
+
+args = init_dataset_args()
+if __name__ == "__main__":
+    # Load config
+    result_dir = f"./log/{args.molecule}/{args.temperature}/{args.state}"
+    pdb_file = f"./data/{args.molecule}-stable/{args.state}.pdb"
+    arg_file = f"{result_dir}/args.json"
+    with open(arg_file, 'r') as f:
+        config = json.load(f)
+        print(">> Loading config")
+        pprint.pprint(config)
+        
+    
+    # Check directory
+    save_dir = f"./dataset/{args.molecule}/{args.temperature}"
+    file_name = f"{args.state}-{args.sim_length}-{args.dataset_type}"
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
+    if os.path.exists(f"{save_dir}/{file_name}.pt"):
+        raise ValueError(f"Folder {save_dir}/{file_name}.pt already exists")
+    
+    
+    # Load trajectory
+    print("\n>> Loading trajectory...")
+    traj_list = []
+    loaded_traj = mdtraj.load(
+        f"{result_dir}/traj.dcd",
+        top=pdb_file
+    )
+    print("Done.")
+    
+    
+    # Build dataset
+    print("\n>> Building Dataset...")
+    torch.save(
+        MD_Dataset(loaded_traj, config, args, sanity_check=False),
+        f"{save_dir}/{file_name}-{args.dataset_version}.pt"
+    )
+    print(f"Dataset created.")
+    
