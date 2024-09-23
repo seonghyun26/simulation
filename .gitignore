@@ -5,6 +5,7 @@
 
 dataset/*
 log/*
+*res*
 data/potential/*
 
 *.csv

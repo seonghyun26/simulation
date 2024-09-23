@@ -44,12 +44,12 @@ class MD_Dataset(Dataset):
         data_interval_list = []
         data_goal_list = []
         
-        random_indices = np.random.choice(self.time - 2, args.sim_length, replace=True)
+        random_indices = np.random.choice(self.time - 2, args.dataset_size, replace=True)
         
         if args.dataset_type == "random":
             for t in tqdm(
                 random_indices,
-                desc="Loading data by random idx"
+                desc="Random dataset construction"
             ):
                 current_state = torch.tensor(loaded_traj[t].xyz.squeeze())
                 next_state = torch.tensor(loaded_traj[t+1].xyz.squeeze())
@@ -61,20 +61,6 @@ class MD_Dataset(Dataset):
                     data_y_list.append(next_state)
                     data_goal_list.append(goal_state)
                     data_interval_list.append(torch.tensor(random_interval).unsqueeze(0))
-        elif args.dataset_type == "goal":
-            for t in tqdm(
-                random_indices,
-                desc="Loading data by random idx"
-            ):
-                random_sim = random.sample(range(sim_num), 1)[0]
-                current_state = torch.tensor(loaded_traj[t+1].xyz.squeeze())
-                next_state = torch.tensor(loaded_traj[t].xyz.squeeze())
-                goal_state = torch.tensor(loaded_traj[0].xyz.squeeze())
-                
-                data_x_list.append(current_state)
-                data_y_list.append(next_state)
-                data_goal_list.append(goal_state)
-                data_interval_list.append(torch.tensor(t+1).unsqueeze(0))
         elif args.dataset_type == "multi-next":
             self.set_simulation()
             for t in tqdm(
@@ -83,10 +69,10 @@ class MD_Dataset(Dataset):
             ):
                 current_state = torch.tensor(loaded_traj[t].xyz.squeeze())
                 
-                # Short simulation, get next_state and goal_state
                 for i in range(args.sim_repeat_num):
                     random_interval = random.sample(range(1, np.min([self.time - t, args.max_path_length])), 1)[0]
                     next_state, goal_state = self.short_simulation(current_state, random_interval)
+                    
                     data_x_list.append(current_state)
                     data_y_list.append(next_state)
                     data_goal_list.append(goal_state)
@@ -119,19 +105,6 @@ class MD_Dataset(Dataset):
                     data_y_ic_list.append(next_state_ic)
                     data_goal_ic_list.append(goal_state_ic)
             self.simulation = None
-        elif args.dataset_type == "two-step":
-            for t in tqdm(
-                random_indices,
-                desc="Two step dataset construction"
-            ):
-                current_state = torch.tensor(loaded_traj[t].xyz.squeeze())
-                next_state = torch.tensor(loaded_traj[t+1].xyz.squeeze())
-                goal_state = torch.tensor(loaded_traj[t+2].xyz.squeeze())
-
-                data_x_list.append(current_state)
-                data_y_list.append(next_state)
-                data_goal_list.append(goal_state)
-                data_interval_list.append(torch.tensor(2).unsqueeze(0))
         else:
             raise ValueError(f"Index {args.dataset_type} not found")
                 
@@ -221,7 +194,7 @@ if __name__ == "__main__":
     
     # Check directory
     save_dir = f"./dataset/{args.molecule}/{args.temperature}"
-    file_name = f"{args.state}-{args.sim_length}-{args.dataset_type}"
+    file_name = f"{args.state}-{args.dataset_type}-{args.dataset_version}"
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
     if os.path.exists(f"{save_dir}/{file_name}.pt"):
@@ -238,11 +211,11 @@ if __name__ == "__main__":
     print("Done.")
     
     
-    # Build dataset
+    # Create dataset
     print("\n>> Building Dataset...")
     torch.save(
         MD_Dataset(loaded_traj, config, args, sanity_check=False),
-        f"{save_dir}/{file_name}-{args.dataset_version}.pt"
+        f"{save_dir}/{file_name}.pt"
     )
     print(f"Dataset created.")
     
