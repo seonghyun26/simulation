@@ -4,6 +4,7 @@
 *.png
 
 dataset/*
+dataset-CL/*
 log/*
 *res*
 data/potential/*
@@ -11,3 +12,4 @@ data/potential/*
 *.csv
 *.dcd
 *.dat
+*.pt
