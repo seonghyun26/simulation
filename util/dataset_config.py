@@ -24,7 +24,7 @@ def init_cl_dataset_args():
     parser.add_argument("--temperature", type=float, help="Temperature to use", default=600.0)
     parser.add_argument('--traj_dir', action='append', help='List of trajectories to make a dataset', required=True)
     parser.add_argument("--dataset_size", type=int, help="Dataset size", default=10000)
-    parser.add_argument("--preprocess", type=str, help="Preprocess data input", default="coordinate")
+    # parser.add_argument("--preprocess", type=str, help="Preprocess data input", default="coordinate")
     parser.add_argument("--dataset_version", type=str, help="Dataset version", default="debug-v1")
 
     args = parser.parse_args()

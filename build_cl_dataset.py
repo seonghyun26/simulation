@@ -19,6 +19,11 @@ from util.ic import load_ic_transform
 from util.dataset_config import init_cl_dataset_args
 
 
+ALANINE_HEAVY_ATOM_IDX = [
+    1, 4, 5, 6, 8, 10, 14, 15, 16, 18
+]
+
+
 class CL_dataset(Dataset):
     def __init__(
         self,
@@ -26,6 +31,7 @@ class CL_dataset(Dataset):
         data_augmented_list,
         data_augmented_hard_list,
         temperature_list,
+        energy_list
     ):
         super(CL_dataset, self).__init__()
         self.device = "cpu"
@@ -34,17 +40,15 @@ class CL_dataset(Dataset):
         self.x_augmented = data_augmented_list.to(self.device)
         self.x_augmented_hard = data_augmented_hard_list.to(self.device)
         self.temperature = temperature_list.to(self.device)
+        self.energy = energy_list.to(self.device)
         
     def __getitem__(self, index):
-	    return self.x[index], self.x_augmented[index], self.x_augmented_hard, self.temperature[index]
+	    return self.x[index], self.x_augmented[index], self.x_augmented_hard[index], self.temperature[index], self.energy[index]
  
     def __len__(self):
 	    return self.x.shape[0]
  
 
-ALANINE_HEAVY_ATOM_IDX = [
-    1, 4, 5, 6, 8, 10, 14, 15, 16, 18
-]
 
 def coordinate2distance(position):
     position = position.reshape(-1, 3)
@@ -60,22 +64,20 @@ def coordinate2distance(position):
 
 def traj2dataset(
     traj_list,
-    cfg_list
+    cfg_list,
+    energy_list,
+    preprocess = "coordinate"
 ):
     dataset_size = args.dataset_size
     number_of_traj = len(traj_list)
-    data_list = []
-    data_augmented_list = []
-    data_augmented_hard_list = []
+    xyz_list = []
+    current_energy_list = []
+    xyz_augmented_list = []
+    xyz_augmented_hard_list = []
+    distance_list = []
+    distance_augmented_list = []
+    distance_augmented_hard_list = []
     temperature_list = []
-    
-    def preprocess_frame(frame):
-        if args.preprocess == "coordinate":
-            return frame
-        elif args.preprocess == "distance":
-            return coordinate2distance(frame)
-        else:
-            raise ValueError(f"Preprocess {args.preprocess} not found")
     
     random_idx_list = []
     for i in range(number_of_traj):
@@ -90,24 +92,38 @@ def traj2dataset(
             frame_idx = random_idx_list[j][i]
             augment_idx = np.min([time_horizon - frame_idx - 1, np.random.randint(1, 10)])
             current_frame = torch.tensor(traj_list[j][frame_idx].xyz.squeeze())
-            data_list.append(preprocess_frame(current_frame))
+            xyz_list.append(current_frame)
+            distance_list.append(coordinate2distance(current_frame))
+            current_energy_list.append(energy_list[j][frame_idx])
+            
             next_frame = torch.tensor(traj_list[j][frame_idx+1].xyz.squeeze())
-            data_augmented_list.append(preprocess_frame(next_frame))
+            xyz_augmented_list.append(next_frame)
+            distance_augmented_list.append(coordinate2distance(next_frame))
+            
             future_frame = torch.tensor(traj_list[j][frame_idx + augment_idx].xyz.squeeze())
-            data_augmented_hard_list.append(preprocess_frame(future_frame))
+            xyz_augmented_hard_list.append(future_frame)
+            distance_augmented_hard_list.append(coordinate2distance(future_frame))
+            
             temperature_list.append(torch.tensor(cfg_list[j]["temperature"]))
     
-    data_list = torch.stack(data_list)
-    data_augmented_list = torch.stack(data_augmented_list)
-    data_augmented_hard_list = torch.stack(data_augmented_hard_list)
+    xyz_list = torch.stack(xyz_list)
+    xyz_augmented_list = torch.stack(xyz_augmented_list)
+    xyz_augmented_hard_list = torch.stack(xyz_augmented_hard_list)
+    distance_list = torch.stack(distance_list)
+    distance_augmented_list = torch.stack(distance_augmented_list)
+    distance_augmented_hard_list = torch.stack(distance_augmented_hard_list)
     temperature_list = torch.stack(temperature_list)
+    current_energy_list = torch.stack(current_energy_list)
+    print(current_energy_list)
     
-    return data_list, data_augmented_list, data_augmented_hard_list, temperature_list
+    return (xyz_list, xyz_augmented_list, xyz_augmented_hard_list, temperature_list, current_energy_list), \
+        (distance_list, distance_augmented_list, distance_augmented_hard_list, temperature_list, current_energy_list)
 
 args = init_cl_dataset_args()
 
 if __name__ == "__main__":
     traj_list = []
+    energy_list = []
     cfg_list = []
     simulation_dir = f"./log/{args.molecule}/{args.temperature}"
     
@@ -122,34 +138,57 @@ if __name__ == "__main__":
             cfg_list.append(config)
             state = config["state"]
         
+        # Read trajectory file
         pdb_file = f"./data/{args.molecule}-stable/{state}.pdb"
         loaded_traj = mdtraj.load(
             f"{dir}/traj.dcd",
             top=pdb_file
         )
         traj_list.append(loaded_traj)
+        
+        # Read energy file
+        scalars = pandas.read_csv(f"{dir}/scalars.csv", usecols=[1])
+        energy_list.append(torch.tensor(scalars.values.squeeze()))
     
     # Check dataset directory
-    save_dir = f"./dataset-CL/{args.molecule}/{args.temperature}"
+    save_dir = f"./dataset-CL/{args.molecule}/{args.temperature}/{args.dataset_version}"
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
-    if os.path.exists(f"{save_dir}/{args.dataset_version}.pt"):
-        raise ValueError(f"Folder {save_dir}/{args.dataset_version}.pt already exists")
+    if os.path.exists(f"{save_dir}/cl-xyz.pt"):
+        print(f"Dataset-xyz already exists at {save_dir}")
+    if os.path.exists(f"{save_dir}/cl-distance.pt"):
+        print(f"Dataset-distance already exists at {save_dir}")
     
     # Create CL dataset
     print("\n>> Building CL Dataset...")
-    data_list, data_augmented_list, data_augmented_hard_list, temperature_list = traj2dataset(
+    xyz_data, distance_data = traj2dataset(
         traj_list,
-        cfg_list
+        cfg_list,
+        energy_list,
+        preprocess = "both"
     )
-    torch.save(
-        CL_dataset(
-            data_list,
-            data_augmented_list,
-            data_augmented_hard_list,
-            temperature_list
-        ),
-        f"{save_dir}/{args.dataset_version}.pt"
-    )
-    print(f"Dataset created at {save_dir}/{args.dataset_version}.pt")
-    
+    if not os.path.exists(f"{save_dir}/cl-xyz.pt"):
+        torch.save(
+            CL_dataset(
+                xyz_data[0],
+                xyz_data[1],
+                xyz_data[2],
+                xyz_data[3],
+                xyz_data[4]
+            ),
+            f"{save_dir}/cl-xyz.pt"
+        )
+    if not os.path.exists(f"{save_dir}/cl-distance.pt"):
+        torch.save(
+            CL_dataset(
+                distance_data[0],
+                distance_data[1],
+                distance_data[2],
+                distance_data[3],
+                distance_data[4],
+            ),
+            f"{save_dir}/cl-distance.pt"
+        )
+    with open(f"{save_dir}/config.json", 'w') as f:
+        json.dump(cfg_list, f, indent=4)
+    print(f"Dataset created at {save_dir}")
