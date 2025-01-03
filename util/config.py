@@ -59,7 +59,7 @@ def init_args():
 
     # Logging
     parser.add_argument("--index", type=str, help="Index of simulation", default="0")
-    parser.add_argument("--log_stdout", type=bool, help="Loggin gfor stdout", default=False)
+    parser.add_argument("--log_stdout", type=bool, help="Logging for stdout", default=False)
     parser.add_argument("--log_dcd", type=bool, help="Logging for dcd", default=True)
     parser.add_argument("--log_csv", type=bool, help="Logging for csv", default=True)
     parser.add_argument("--log_force", type=bool, help="Logging for force", default=False)

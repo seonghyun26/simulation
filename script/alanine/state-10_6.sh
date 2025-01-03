@@ -7,8 +7,10 @@ do
         --state $state \
         --force_field amber99 \
         --solvent tip3p \
-        --temperature 1200 \
-        --time 1_000_000 \
+        --temperature 300 \
+        --time 10_000_000 \
         --platform OpenCL \
-        --precision mixed
+        --precision mixed \
+        --log_stdout True \
+        --freq_stdout 10_000
 done
