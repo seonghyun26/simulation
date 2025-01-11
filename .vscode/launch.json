@@ -13,13 +13,13 @@
       "console": "integratedTerminal",
       "args": [
         "--molecule",
-        "alanine",
+        "chignolin",
         "--state",
-        "c5",
+        "unfolded",
         "--force_field",
-        "amber99",
+        "protein.ff14SBonlysc",
         "--solvent",
-        "tip3p",
+        "implicit/gbn2",
         "--temperature",
         "300",
         "--time",
@@ -28,10 +28,6 @@
         "OpenCL",
         "--precision",
         "mixed",
-        "--log_force",
-        "True",
-        "--index",
-        "debug"
       ]
     },
     {
@@ -42,33 +38,26 @@
         "CUDA_VISIBLE_DEVICES": "0"
       },
       "cwd": "/home/shpark/prj-cmd/simulation",
-      "program": "build_cl_dataset.py",
+      "program": "build_cl_dataset_v2.py",
       "console": "integratedTerminal",
       "args": [
           "--molecule",
           "alanine",
           "--temperature",
-          "600.0",
-          "--traj_dir",
-          "24-11-11/17:13",
-          "--traj_dir",
-          "24-11-12/10:58",
-          "--preprocess",
-          "distance",
+          "300.0",
+          "--dataset_size",
+          "100000",
           "--dataset_version",
-          "debug-distance-v2"
+          "v4",
+          "--positive_sample_augmentation",
+          "100",
+          "--negative_sample_augmentation",
+          "100000",
+          "--traj_dir",
+          "24-12-26/14:53",
+          "--traj_dir",
+          "24-12-26/15:08 "
       ]
     },
-    {
-      "name": "DW Dataset",
-      "type": "debugpy",
-      "request": "launch",
-      "env": {
-        "CUDA_VISIBLE_DEVICES": "0"
-      },
-      "cwd": "/home/shpark/prj-cmd/simulation/synthetic",
-      "program": "build-synthetic-dataset.py",
-      "console": "integratedTerminal",
-    }
   ]
 }

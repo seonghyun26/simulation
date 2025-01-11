@@ -83,6 +83,9 @@ def set_molecule(molecule, state):
             pdb_file_name = f"alanine/{state}.pdb"
         else:
             raise ValueError(f"State {state} not recognized")
+    elif molecule == "chignolin":
+        if state in ["unfolded", "folded"]:
+            pdb_file_name = f"chignolin/{state}.pdb"
     else:
         raise ValueError(f"Molecule {molecule} not recognized")
     
@@ -97,12 +100,15 @@ def set_force_field(force_field, solvent):
         files.append("amber14-all.xml")
     elif force_field == "amber99":
         files.append("amber99sbildn.xml")
+    elif force_field == "protein.ff14SBonlysc":
+        files.append("./data/forcefield/protein.ff14SBonlysc.xml")
     else:
         raise ValueError(f"Force field {force_field} not recognized")
     
     if solvent == "tip3p":
-        # files.append("amber14/tip3pfb.xml")
         files.append("tip3pfb.xml")
+    elif solvent == "implicit/gbn2":
+        files.append("implicit/gbn2.xml")
     elif solvent == "vacuum":
         pass
     else:

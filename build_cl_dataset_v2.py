@@ -22,8 +22,15 @@ from util.dataset_config import init_cl_dataset_args
 ALANINE_HEAVY_ATOM_IDX = [
     1, 4, 5, 6, 8, 10, 14, 15, 16, 18
 ]
-POSITIVE_SAMPLE_AUGMENTATION = 0
-NEGATIVE_SAMPLE_AUGMENTATION = 100000
+CHIGNOLIN_HEAVY_ATOM_IDX = [
+    0, 1, 2, 3, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
+    30, 31, 32, 33, 34, 35, 36, 37, 42, 43, 44, 45, 46, 47, 48,
+    56, 57, 58, 59, 60, 61, 62, 63, 64,
+    71, 72, 73, 74, 75, 76, 77, 85, 86, 87, 88,
+    92, 93, 94, 95, 96, 97, 98, 106, 107, 108, 109,
+    110, 111, 112, 113, 114, 115, 116, 117, 118, 119,
+    130, 131, 132, 133, 134
+]
 
 class CL_dataset(Dataset):
     def __init__(
@@ -51,9 +58,18 @@ class CL_dataset(Dataset):
  
 
 
-def coordinate2distance(position):
+def coordinate2distance(
+    position,
+    molecule = "alanine"
+):
     position = position.reshape(-1, 3)
-    heavy_atom_position = position[ALANINE_HEAVY_ATOM_IDX]
+    if molecule == "alanine":
+        heavy_atom_position = position[ALANINE_HEAVY_ATOM_IDX]
+    elif molecule == "chignolin":
+        heavy_atom_position = position[CHIGNOLIN_HEAVY_ATOM_IDX]
+    else:
+        raise ValueError(f"Molecule {molecule} not found")
+    
     num_heavy_atoms = len(heavy_atom_position)
     distance = []
     for i in range(num_heavy_atoms):
@@ -69,6 +85,7 @@ def traj2dataset(
     energy_list,
     preprocess = "coordinate"
 ):
+    molecule = args.molecule
     dataset_size = args.dataset_size
     number_of_traj = len(traj_list)
     xyz_list = []
@@ -83,7 +100,7 @@ def traj2dataset(
     random_idx_list = []
     for i in range(number_of_traj):
         time_horizon = cfg_list[i]["time"]
-        random_idx_list.append(np.random.choice(time_horizon - 2 - NEGATIVE_SAMPLE_AUGMENTATION, dataset_size, replace=True))
+        random_idx_list.append(np.random.choice(time_horizon - 2 - args.negative_sample_augmentation, dataset_size, replace=True))
     
     for i in tqdm(
         range(dataset_size),
@@ -97,17 +114,17 @@ def traj2dataset(
             frame_idx = random_idx_list[j][i]
             current_frame = torch.tensor(traj_list[j][frame_idx].xyz.squeeze())
             xyz_list.append(current_frame)
-            distance_list.append(coordinate2distance(current_frame))
+            distance_list.append(coordinate2distance(current_frame, molecule))
             current_energy_list.append(energy_list[j][frame_idx])
             
-            next_frame = torch.tensor(traj_list[j][frame_idx + POSITIVE_SAMPLE_AUGMENTATION].xyz.squeeze())
-            xyz_positive_list.append(next_frame)
-            distance_positive_list.append(coordinate2distance(next_frame))
+            positive_frame = torch.tensor(traj_list[j][frame_idx + args.positive_sample_augmentation].xyz.squeeze())
+            xyz_positive_list.append(positive_frame)
+            distance_positive_list.append(coordinate2distance(positive_frame, molecule))
             
-            # augment_idx = np.min([time_horizon - frame_idx - 1, np.random.randint(1, NEGATIVE_SAMPLE_AUGMENTATION)])
-            future_frame = torch.tensor(traj_list[j][frame_idx + NEGATIVE_SAMPLE_AUGMENTATION].xyz.squeeze())
-            xyz_negative_list.append(future_frame)
-            distance_negative_list.append(coordinate2distance(future_frame))
+            # augment_idx = np.min([time_horizon - frame_idx - 1, np.random.randint(1, args.negative_sample_augmentation)])
+            negative_frame = torch.tensor(traj_list[j][frame_idx + args.negative_sample_augmentation].xyz.squeeze())
+            xyz_negative_list.append(negative_frame)
+            distance_negative_list.append(coordinate2distance(negative_frame, molecule))
             
             temperature_list.append(torch.tensor(cfg_list[j]["temperature"]))
         '''
@@ -118,18 +135,17 @@ def traj2dataset(
             frame_idx = random_idx_list[j][i]
             current_frame = torch.tensor(traj_list[j][frame_idx].xyz.squeeze())
             xyz_list.append(current_frame)
-            distance_list.append(coordinate2distance(current_frame))
+            distance_list.append(coordinate2distance(current_frame, molecule))
             current_energy_list.append(energy_list[j][frame_idx])
             
-            next_frame = torch.tensor(traj_list[j][frame_idx + POSITIVE_SAMPLE_AUGMENTATION].xyz.squeeze())
-            xyz_positive_list.append(next_frame)
-            distance_positive_list.append(coordinate2distance(next_frame))
+            positive_frame = torch.tensor(traj_list[j][frame_idx + args.positive_sample_augmentation].xyz.squeeze())
+            xyz_positive_list.append(positive_frame)
+            distance_positive_list.append(coordinate2distance(positive_frame, molecule))
             
-            # augment_idx = np.min([time_horizon - frame_idx - 1, np.random.randint(1, 20)])
             other_trajectory_idx = 1 if j == 0 else 0
-            future_frame = torch.tensor(traj_list[other_trajectory_idx][frame_idx].xyz.squeeze())
-            xyz_negative_list.append(future_frame)
-            distance_negative_list.append(coordinate2distance(future_frame))
+            negative_frame = torch.tensor(traj_list[other_trajectory_idx][frame_idx].xyz.squeeze())
+            xyz_negative_list.append(negative_frame)
+            distance_negative_list.append(coordinate2distance(negative_frame, molecule))
             
             temperature_list.append(torch.tensor(cfg_list[j]["temperature"]))
     
@@ -166,7 +182,12 @@ if __name__ == "__main__":
             state = config["state"]
         
         # Read trajectory file
-        pdb_file = f"./data/{args.molecule}-stable/{state}.pdb"
+        if args.molecule == "alanine":
+            pdb_file = f"./data/{args.molecule}-stable/{state}.pdb"
+        elif args.molecule == "chignolin":
+            pdb_file = f"./data/{args.molecule}/{state}.pdb"
+        else:
+            raise ValueError(f"Molecule {args.molecule} not found")
         loaded_traj = mdtraj.load(
             f"{dir}/traj.dcd",
             top=pdb_file
@@ -205,6 +226,7 @@ if __name__ == "__main__":
             ),
             f"{save_dir}/cl-xyz.pt"
         )
+        print(f"CL-xyz dataset saved at {save_dir}")
     if not os.path.exists(f"{save_dir}/cl-distance.pt"):
         torch.save(
             CL_dataset(
@@ -216,6 +238,9 @@ if __name__ == "__main__":
             ),
             f"{save_dir}/cl-distance.pt"
         )
+        print(f"CL-distance dataset saved at {save_dir}")
+    
+    cfg_list.append(vars(args))
     with open(f"{save_dir}/config.json", 'w') as f:
         json.dump(cfg_list, f, indent=4)
     print(f"Dataset created at {save_dir}")
