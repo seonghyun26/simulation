@@ -1,3 +1,4 @@
+import os
 import json
 import torch
 import pprint
@@ -18,6 +19,10 @@ from torch.utils.data import Dataset
 from util.ic import load_ic_transform
 from util.dataset_config import init_cl_dataset_args
 
+
+
+ALDP_PHI_ANGLE = [4, 6, 8, 14]
+ALDP_PSI_ANGLE = [6, 8, 14, 16]
 
 ALANINE_HEAVY_ATOM_IDX = [
     1, 4, 5, 6, 8, 10, 14, 15, 16, 18
@@ -100,7 +105,7 @@ def traj2dataset(
     random_idx_list = []
     for i in range(number_of_traj):
         time_horizon = cfg_list[i]["time"]
-        random_idx_list.append(np.random.choice(time_horizon - 2 - args.negative_sample_augmentation, dataset_size, replace=True))
+        random_idx_list.append(np.random.choice(traj_list[0].n_frames - 2 - args.negative_sample_augmentation, dataset_size, replace=True))
     
     for i in tqdm(
         range(dataset_size),
@@ -157,10 +162,33 @@ def traj2dataset(
     distance_negative_list = torch.stack(distance_negative_list)
     temperature_list = torch.stack(temperature_list)
     current_energy_list = torch.stack(current_energy_list)
-    print(current_energy_list)
     
     return (xyz_list, xyz_positive_list, xyz_negative_list, temperature_list, current_energy_list), \
         (distance_list, distance_positive_list, distance_negative_list, temperature_list, current_energy_list)
+
+def compute_dihedral(
+    positions: torch.Tensor
+):
+	"""http://stackoverflow.com/q/20305272/1128289"""
+	def dihedral(p):
+		if not isinstance(p, np.ndarray):
+			p = p.numpy()
+		b = p[:-1] - p[1:]
+		b[0] *= -1
+		v = np.array([v - (v.dot(b[1]) / b[1].dot(b[1])) * b[1] for v in [b[0], b[2]]])
+		
+		# Normalize vectors
+		v /= np.sqrt(np.einsum('...i,...i', v, v)).reshape(-1, 1)
+		b1 = b[1] / np.linalg.norm(b[1])
+		x = np.dot(v[0], v[1])
+		m = np.cross(v[0], b1)
+		y = np.dot(m, v[1])
+		
+		return np.arctan2(y, x)
+
+	angles = np.array(list(map(dihedral, positions)))
+	return angles
+
 
 args = init_cl_dataset_args()
 
@@ -195,8 +223,9 @@ if __name__ == "__main__":
         traj_list.append(loaded_traj)
         
         # Read energy file
-        scalars = pandas.read_csv(f"{dir}/scalars.csv", usecols=[1])
-        energy_list.append(torch.tensor(scalars.values.squeeze()))
+        # scalars = pandas.read_csv(f"{dir}/scalars.csv", usecols=[1])
+        # energy_list.append(torch.tensor(scalars.values.squeeze()))
+        energy_list.append(torch.zeros(loaded_traj.n_frames))
     
     # Check dataset directory
     save_dir = f"../data/dataset/{args.molecule}/{args.temperature}/{args.dataset_version}"
@@ -244,3 +273,32 @@ if __name__ == "__main__":
     with open(f"{save_dir}/config.json", 'w') as f:
         json.dump(cfg_list, f, indent=4)
     print(f"Dataset created at {save_dir}")
+    
+    # Compute dihedral angles and save it
+    dataset = torch.load(f"{save_dir}/cl-xyz.pt")
+    current_state_list = []
+    positive_state_list = []
+    negative_state_list = []
+    for data in tqdm(dataset):
+        current_state, positive, negative, _, _ = data
+        current_state_list.append(current_state)
+        positive_state_list.append(positive)
+        negative_state_list.append(negative)
+    current_state_list = np.stack(current_state_list)
+    positive_state_list = np.stack(positive_state_list)
+    negative_state_list = np.stack(negative_state_list)
+    
+    state_phi_list = compute_dihedral(current_state_list[:, ALDP_PHI_ANGLE])
+    state_psi_list = compute_dihedral(current_state_list[:, ALDP_PSI_ANGLE])
+    positive_phi_list = compute_dihedral(positive_state_list[:, ALDP_PHI_ANGLE])
+    positive_psi_list = compute_dihedral(positive_state_list[:, ALDP_PSI_ANGLE])
+    negative_phi_list = compute_dihedral(negative_state_list[:, ALDP_PHI_ANGLE])
+    negative_psi_list = compute_dihedral(negative_state_list[:, ALDP_PSI_ANGLE])
+    np.save(f"{save_dir}/state_phi.npy", state_phi_list)
+    np.save(f"{save_dir}/state_psi.npy", state_psi_list)
+    np.save(f"{save_dir}/positive_phi.npy", positive_phi_list)
+    np.save(f"{save_dir}/positive_psi.npy", positive_psi_list)
+    np.save(f"{save_dir}/negative_phi.npy", negative_phi_list)
+    np.save(f"{save_dir}/negative_psi.npy", negative_psi_list)
+    
+    print(f"Dihedral angles saved at {save_dir}")

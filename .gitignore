@@ -4,7 +4,7 @@
 *.png
 
 dataset/*
-dataset-CL/*
+trash/*
 log/*
 *res*
 data/potential/*
