@@ -14,11 +14,7 @@ from openmm import *
 from openmm.app import *
 from openmm.unit import *
 
-from torch.utils.data import Dataset
-
-from util.ic import load_ic_transform
 from util.dataset_config import init_cl_dataset_args
-
 
 
 ALDP_PHI_ANGLE = [4, 6, 8, 14]
@@ -106,8 +102,6 @@ def compute_dihedral(
 	angles = np.array(list(map(dihedral, positions)))
 	return angles
 
-
-
 def traj2dataset(
     traj_list,
     cfg_list,
@@ -116,33 +110,58 @@ def traj2dataset(
     dataset_size = args.dataset_size
     number_of_traj = len(traj_list)
     current_state_xyz = []
-    time_lagged_state_xyz = []
+    current_state_distance = []
     phi_list = []
     psi_list = []
+    label_list = []
     reference_state_xyz = torch.tensor(traj_list[0][0].xyz.squeeze())
     
     print(f"Sampling {dataset_size} frames from {number_of_traj} trajectories with {traj_list[0].n_frames} frames")
-    random_idx = np.random.choice(traj_list[0].n_frames - 2 - args.negative_sample_augmentation, dataset_size, replace=True)
+    random_idx = np.random.choice(traj_list[0].n_frames - 1, dataset_size, replace=True)
     for traj_idx in range(number_of_traj):
         for i in tqdm(
             range(dataset_size),
-            desc = "Sampling frames from trajectories"
+            desc = f"Sampling frames from trajectory {traj_idx}"
         ):
             frame_idx = random_idx[i]
             current_frame = torch.tensor(traj_list[traj_idx][frame_idx].xyz.squeeze())
             current_state_xyz.append(kabsch(current_frame, reference_state_xyz))
-            time_lagged_frame = torch.tensor(traj_list[traj_idx][frame_idx + args.negative_sample_augmentation].xyz.squeeze())
-            time_lagged_state_xyz.append(kabsch(time_lagged_frame, reference_state_xyz))
-            phi_list.append(compute_dihedral(current_frame[ALDP_PHI_ANGLE].reshape(1, -1, 3)))
-            psi_list.append(compute_dihedral(current_frame[ALDP_PSI_ANGLE].reshape(1, -1, 3)))
+            current_state_distance.append(coordinate2distance(current_frame))
+            phi = compute_dihedral(current_frame[ALDP_PHI_ANGLE].reshape(1, -1, 3))
+            psi = compute_dihedral(current_frame[ALDP_PSI_ANGLE].reshape(1, -1, 3))
+            phi_list.append(phi)
+            psi_list.append(psi)
+            if phi > 0 :
+                label_list.append(1.0)
+            else:
+                label_list.append(0.0)
         
     current_state_xyz = torch.stack(current_state_xyz)
-    time_lagged_state_xyz = torch.stack(time_lagged_state_xyz)
+    current_state_distance = torch.stack(current_state_distance)
     phi_list = np.stack(phi_list)
     psi_list = np.stack(psi_list)
+    label_list = torch.tensor(label_list, dtype=torch.float32)
     
-    return current_state_xyz, time_lagged_state_xyz, phi_list, psi_list
+    return current_state_xyz, current_state_distance, phi_list, psi_list, label_list
 
+def check_and_save(
+    dir,
+    name,
+    data
+):    
+    if not os.path.exists(dir):
+        os.makedirs(dir)
+    if os.path.exists(f"{dir}/{name}"):
+        print(f"{name} already exists at {dir}/{name}")
+        pass
+    else:
+        if isinstance(data, torch.Tensor):
+            torch.save(data, f"{dir}/{name}")
+        elif isinstance(data, np.ndarray):
+            np.save(f"{dir}/{name}", data)
+        else:
+            raise ValueError(f"Data type {type(data)} not supported")
+        print(f"{name} dataset saved at {dir}")
 
 args = init_cl_dataset_args()
 
@@ -178,37 +197,20 @@ if __name__ == "__main__":
     
     # Check dataset directory
     save_dir = f"../data/dataset/{args.molecule}/{args.temperature}/{args.dataset_version}"
-    if not os.path.exists(save_dir):
-        os.makedirs(save_dir)
-    if os.path.exists(f"{save_dir}/cl-xyz-aligned-tae.pt"):
-        print(f"Dataset-xyz-aligned-tae already exists at {save_dir}")
-        exit()
+    for name in ["cl-xyz-aligned.pt", "cl-distance.pt", "phi.npy", "psi.npy", "label.npy"]:
+        if os.path.exists(f"{save_dir}/{name}"):
+            print(f"{name} already exists at {save_dir}")
+            exit()
     
-    # Create TAE dataset
-    print("\n>> Building TAE Dataset...")
-    current_state_xyz, time_lagged_state_xyz, phi_list, psi_list = traj2dataset(
+    # Create DA dataset
+    print("\n>> Building DA Dataset...")
+    current_state_xyz, current_state_distance, phi_list, psi_list, label_list = traj2dataset(
         traj_list,
         cfg_list,
     )
     
-    if not os.path.exists(f"{save_dir}/cl-xyz-aligned-tae.pt"):
-        torch.save(
-            torch.stack([current_state_xyz, time_lagged_state_xyz], dim=0),
-            f"{save_dir}/cl-xyz-aligned-tae.pt"
-        )
-        print(f"cl-xyz-aligned-tae dataset saved at {save_dir}")
-    else:
-        raise ValueError(f"cl-xyz-aligned-tae dataset already exists at {save_dir}")
-    
-    if not os.path.exists(f"{save_dir}/phi-tae.npy"):
-        np.save(f"{save_dir}/phi-tae.npy", phi_list)
-        print(f"phi-tae dataset saved at {save_dir}")
-    else:
-        raise ValueError(f"phi-tae dataset already exists at {save_dir}")
-    
-    if not os.path.exists(f"{save_dir}/psi-tae.npy"):
-        np.save(f"{save_dir}/psi-tae.npy", psi_list)
-        print(f"psi-tae dataset saved at {save_dir}")
-    else:
-        raise ValueError(f"psi-tae dataset already exists at {save_dir}")
-    
+    check_and_save(dir = save_dir, name = "cl-xyz-aligned.pt", data = current_state_xyz)
+    check_and_save(dir = save_dir, name = "cl-distance.pt", data = current_state_distance)
+    check_and_save(dir = save_dir, name = "phi.npy", data = phi_list)
+    check_and_save(dir = save_dir, name = "psi.npy", data = psi_list)
+    check_and_save(dir = save_dir, name = "label.pt", data = label_list)
