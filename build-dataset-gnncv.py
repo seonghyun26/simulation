@@ -1,12 +1,13 @@
 import os
 import json
 import torch
-import mdtraj
+import mdtraj as md
 import numpy as np
 
 from tqdm import tqdm
 from util.dataset_config import init_cl_dataset_args
 
+import mlcolvar
 import mlcolvar.graph as mg
 
 
@@ -38,7 +39,7 @@ def check_and_save(
         print(f"{name} already exists at {dir}/{name}")
         pass
     else:
-        if isinstance(data, torch.Tensor):
+        if isinstance(data, torch.Tensor) or isinstance(data, mlcolvar.graph.data.GraphDataSet):
             torch.save(data, f"{dir}/{name}")
         elif isinstance(data, np.ndarray):
             np.save(f"{dir}/{name}", data)
@@ -54,7 +55,7 @@ if __name__ == "__main__":
     energy_list = []
     cfg_list = []
     simulation_dir = f"./log/{args.molecule}/{args.temperature}"
-    print(f">> Building timelag dataset {args.dataset_version}")
+    print(f">> Building graph dataset {args.dataset_version}")
     
     # Load trajectories
     for traj_dir in tqdm(
@@ -77,19 +78,21 @@ if __name__ == "__main__":
             raise ValueError(f"Molecule {args.molecule} not found")
         
         # Load trajectory file
-        loaded_traj = mdtraj.load(
-            f"{dir}/traj.dcd",
-            top=pdb_file
-        )
-        traj_list.append(loaded_traj)
+        traj_temp = md.load(f"{dir}/traj.gro", top=pdb_file)[::400]
+        # random_idx = np.random.choice(traj_temp.n_frames - 2, args.dataset_size, replace=True)
+        # traj_temp = traj_temp[random_idx]
+        traj_temp.save_gro(f"{dir}/traj_sampled.gro")
+        traj_list.append(f"{dir}/traj_sampled.gro")
     
     save_dir = f"../data/dataset/{args.molecule}/{args.temperature}/{args.dataset_version}"
     dataset = mg.utils.io.create_dataset_from_trajectories(
         trajectories=traj_list,
-        top=pdb_file,
+        # trajectories=["../base/gnncv/alad/data/A.gro", "../base/gnncv/alad/data/B.gro"],
+        top=["./data/alanine-stable/c5.pdb", "./data/alanine-stable/c5.pdb"],
         cutoff=10,
         create_labels=True,
         system_selection='not type H',
     )
-    mg.data.save_dataset(dataset, f"{save_dir}/graph-dataset.pt")
+    # mg.data.save_dataset(dataset, f"{save_dir}/graph-dataset.pt")
+    check_and_save(save_dir, "graph-dataset.pt", dataset)
     print(f"Dataset saved at {save_dir}/graph-dataset.pt")
