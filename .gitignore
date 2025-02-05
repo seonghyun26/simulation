@@ -6,8 +6,6 @@
 dataset/*
 trash/*
 log/*
-*res*
-data/potential/*
 
 *.csv
 *.dcd

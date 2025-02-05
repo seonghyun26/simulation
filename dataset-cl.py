@@ -56,10 +56,10 @@ class CL_dataset(Dataset):
         self.energy = energy_list.to(self.device)
         
     def __getitem__(self, index):
-	    return self.x[index], self.x_augmented[index], self.x_augmented_hard[index], self.temperature[index], self.energy[index]
- 
+        return self.x[index], self.x_augmented[index], self.x_augmented_hard[index], self.temperature[index], self.energy[index]
+
     def __len__(self):
-	    return self.x.shape[0]
+        return self.x.shape[0]
  
 
 
@@ -128,27 +128,6 @@ def traj2dataset(
             
             # augment_idx = np.min([time_horizon - frame_idx - 1, np.random.randint(1, args.negative_sample_augmentation)])
             negative_frame = torch.tensor(traj_list[j][frame_idx + args.negative_sample_augmentation].xyz.squeeze())
-            xyz_negative_list.append(negative_frame)
-            distance_negative_list.append(coordinate2distance(negative_frame, molecule))
-            
-            temperature_list.append(torch.tensor(cfg_list[j]["temperature"]))
-        '''
-            - positive sample: next frame
-            - negative sample: same idx frame in another trajectory
-        '''
-        for j in range(number_of_traj):
-            frame_idx = random_idx_list[j][i]
-            current_frame = torch.tensor(traj_list[j][frame_idx].xyz.squeeze())
-            xyz_list.append(current_frame)
-            distance_list.append(coordinate2distance(current_frame, molecule))
-            current_energy_list.append(energy_list[j][frame_idx])
-            
-            positive_frame = torch.tensor(traj_list[j][frame_idx + args.positive_sample_augmentation].xyz.squeeze())
-            xyz_positive_list.append(positive_frame)
-            distance_positive_list.append(coordinate2distance(positive_frame, molecule))
-            
-            other_trajectory_idx = 1 if j == 0 else 0
-            negative_frame = torch.tensor(traj_list[other_trajectory_idx][frame_idx].xyz.squeeze())
             xyz_negative_list.append(negative_frame)
             distance_negative_list.append(coordinate2distance(negative_frame, molecule))
             
@@ -294,8 +273,8 @@ if __name__ == "__main__":
     positive_psi_list = compute_dihedral(positive_state_list[:, ALDP_PSI_ANGLE])
     negative_phi_list = compute_dihedral(negative_state_list[:, ALDP_PHI_ANGLE])
     negative_psi_list = compute_dihedral(negative_state_list[:, ALDP_PSI_ANGLE])
-    np.save(f"{save_dir}/state_phi.npy", state_phi_list)
-    np.save(f"{save_dir}/state_psi.npy", state_psi_list)
+    np.save(f"{save_dir}/phi.npy", state_phi_list)
+    np.save(f"{save_dir}/psi.npy", state_psi_list)
     np.save(f"{save_dir}/positive_phi.npy", positive_phi_list)
     np.save(f"{save_dir}/positive_psi.npy", positive_psi_list)
     np.save(f"{save_dir}/negative_phi.npy", negative_phi_list)

@@ -1,6 +1,6 @@
 cd ../
 
-python build_cl_dataset_v2.py \
+python build_cl_dataset.py \
     --molecule chignolin \
     --temperature 300.0 \
     --dataset_size 100000 \

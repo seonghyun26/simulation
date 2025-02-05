@@ -2,13 +2,13 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "MD Simulation",
+      "name": "Simulation",
       "type": "debugpy",
       "request": "launch",
       "env": {
         "CUDA_VISIBLE_DEVICES": "0"
       },
-      "cwd": "/home/shpark/prj-cmd/simulation",
+      "cwd": "../",
       "program": "main.py",
       "console": "integratedTerminal",
       "args": [
@@ -31,13 +31,13 @@
       ]
     },
     {
-      "name": "CL Dataset",
+      "name": "Dataset",
       "type": "debugpy",
       "request": "launch",
       "env": {
         "CUDA_VISIBLE_DEVICES": "0"
       },
-      "cwd": "/home/shpark/prj-cmd/simulation",
+      "cwd": "../",
       "program": "build_cl_dataset_v2.py",
       "console": "integratedTerminal",
       "args": [

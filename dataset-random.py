@@ -202,8 +202,8 @@ if __name__ == "__main__":
             print(f"{name} already exists at {save_dir}")
             exit()
     
-    # Create DA dataset
-    print("\n>> Building DA Dataset...")
+    # Create sampled dataset
+    print("\n>> Building random Dataset...")
     current_state_xyz, current_state_distance, phi_list, psi_list, label_list = traj2dataset(
         traj_list,
         cfg_list,
