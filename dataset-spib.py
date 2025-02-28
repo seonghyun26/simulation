@@ -148,7 +148,7 @@ if __name__ == "__main__":
     
     # Check dataset directory
     save_dir = f"../data/dataset/{args.molecule}/{args.temperature}/{args.dataset_version}"
-    for name in ["cl-xyz-aligned.pt", "cl-distance.pt", "phi.npy", "psi.npy", "label.npy"]:
+    for name in ["dihedral.npy", "label.npy"]:
         if os.path.exists(f"{save_dir}/{name}"):
             print(f"{name} already exists at {save_dir}")
             exit()

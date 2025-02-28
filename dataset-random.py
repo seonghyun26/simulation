@@ -183,9 +183,7 @@ if __name__ == "__main__":
             state = config["state"]
         
         # Read trajectory file
-        if args.molecule == "alanine":
-            pdb_file = f"./data/{args.molecule}-stable/{state}.pdb"
-        elif args.molecule == "chignolin":
+        if args.molecule in ["alanine", "chignolin"]:
             pdb_file = f"./data/{args.molecule}/{state}.pdb"
         else:
             raise ValueError(f"Molecule {args.molecule} not found")
@@ -196,8 +194,8 @@ if __name__ == "__main__":
         traj_list.append(loaded_traj)
     
     # Check dataset directory
-    save_dir = f"../data/dataset/{args.molecule}/{args.temperature}/{args.dataset_version}"
-    for name in ["cl-xyz-aligned.pt", "cl-distance.pt", "phi.npy", "psi.npy", "label.npy"]:
+    save_dir = f"./dataset/{args.molecule}/{args.temperature}/{args.dataset_version}"
+    for name in ["xyz-aligned.pt", "distance.pt", "phi.npy", "psi.npy", "label.npy"]:
         if os.path.exists(f"{save_dir}/{name}"):
             print(f"{name} already exists at {save_dir}")
             exit()
@@ -209,8 +207,8 @@ if __name__ == "__main__":
         cfg_list,
     )
     
-    check_and_save(dir = save_dir, name = "cl-xyz-aligned.pt", data = current_state_xyz)
-    check_and_save(dir = save_dir, name = "cl-distance.pt", data = current_state_distance)
+    check_and_save(dir = save_dir, name = "xyz-aligned.pt", data = current_state_xyz)
+    check_and_save(dir = save_dir, name = "distance.pt", data = current_state_distance)
     check_and_save(dir = save_dir, name = "phi.npy", data = phi_list)
     check_and_save(dir = save_dir, name = "psi.npy", data = psi_list)
     check_and_save(dir = save_dir, name = "label.pt", data = label_list)

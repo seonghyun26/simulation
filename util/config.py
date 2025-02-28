@@ -56,9 +56,9 @@ def init_args():
     parser.add_argument("--time", type=int, help="Total simulation steps", default=1e+8)
     parser.add_argument("--platform", type=str, help="Platform to use", default="OpenCL")
     parser.add_argument("--precision", type=str, help="Precision to use", default="single")
+    parser.add_argument("--seed", type=int, help="Seed to use for integrator", default=0)
 
     # Logging
-    parser.add_argument("--index", type=str, help="Index of simulation", default="0")
     parser.add_argument("--log_stdout", type=bool, help="Logging for stdout", default=False)
     parser.add_argument("--log_dcd", type=bool, help="Logging for dcd", default=True)
     parser.add_argument("--log_csv", type=bool, help="Logging for csv", default=True)
@@ -122,7 +122,6 @@ def set_platform(platform, precision):
         platform = Platform.getPlatformByName('CPU')
         properties = {}
     elif platform == "CUDA":
-        # raise ValueError("CUDA does not work")
         platform = Platform.getPlatformByName('CUDA')
         assert precision in ['single', 'mixed', 'double'], f"Precision {precision} not recognized"
         properties = {'DeviceIndex': 0, 'Precision': f"{precision}"}
@@ -149,6 +148,7 @@ def set_simulation(args, forcefield_files, start_pdb, platform, properties):
         1 / picosecond,
         1 * femtoseconds
     )
+    integrator.setRandomNumberSeed(args.seed)
     
     # Create simulation
     simulation = Simulation(
@@ -214,11 +214,11 @@ def set_logging(args):
                 totalEnergy=True,
                 temperature=True,
         ))
-    if args.log_force:
-        reporters.append(
-            ForceReporter(
-                file_name=force_file_name,
-                reportInterval=1
-        ))
+    # if args.log_force:
+    #     reporters.append(
+    #         ForceReporter(
+    #             file_name=force_file_name,
+    #             reportInterval=1
+    #     ))
 
     return reporters

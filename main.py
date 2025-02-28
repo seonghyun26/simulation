@@ -1,19 +1,8 @@
 import os
-import pandas
-import mdtraj
-import nglview
-import argparse
 
-import numpy as np
-import matplotlib.pyplot as plt
+from util.config import init_args, set_molecule, set_force_field, set_platform, set_simulation, set_logging
 
-from sys import stdout
-from matplotlib.gridspec import GridSpec
-
-from util.config import *
-from util.plot import plot_ramachandran
-
-os.environ["OPENMM_PLUGIN_DIR"] = "/home/shpark/.conda/envs/cv/lib/python3.9/site-packages/OpenMM.libs/lib"
+os.environ["OPENMM_PLUGIN_DIR"] = "/home/shpark/.conda/envs/mlcv/lib/python3.9/site-packages/OpenMM.libs/lib"
 print(os.environ["OPENMM_PLUGIN_DIR"])
 
 if __name__ == "__main__":
@@ -34,6 +23,7 @@ if __name__ == "__main__":
     print(f">> Time horizon : {args.time}")
     print(f">> Temperature: {args.temperature}")
     print(f">> Platform, precision: {args.platform}, {args.precision}")
+    print(f">> Seed: {args.seed}")
     
     
     # Start simulation!!
