@@ -107,7 +107,7 @@ def traj2dataset(
     cfg_list,
 ):
     molecule = args.molecule
-    dataset_size = args.dataset_size
+    data_per_traj = args.data_per_traj
     number_of_traj = len(traj_list)
     current_state_xyz = []
     current_state_distance = []
@@ -116,11 +116,11 @@ def traj2dataset(
     label_list = []
     reference_state_xyz = torch.tensor(traj_list[0][0].xyz.squeeze())
     
-    print(f"Sampling {dataset_size} frames from {number_of_traj} trajectories with {traj_list[0].n_frames} frames")
-    random_idx = np.random.choice(traj_list[0].n_frames - 1, dataset_size, replace=True)
+    print(f"Sampling {data_per_traj} frames from {number_of_traj} trajectories with {traj_list[0].n_frames} frames")
     for traj_idx in range(number_of_traj):
+        random_idx = np.random.choice(traj_list[traj_idx].n_frames - 1, data_per_traj, replace=True)
         for i in tqdm(
-            range(dataset_size),
+            range(data_per_traj),
             desc = f"Sampling frames from trajectory {traj_idx}"
         ):
             frame_idx = random_idx[i]
@@ -131,16 +131,13 @@ def traj2dataset(
             psi = compute_dihedral(current_frame[ALDP_PSI_ANGLE].reshape(1, -1, 3))
             phi_list.append(phi)
             psi_list.append(psi)
-            if phi > 0 :
-                label_list.append(1.0)
-            else:
-                label_list.append(0.0)
+            label_list.append(1.0 if psi > 0 else 0.0)
         
     current_state_xyz = torch.stack(current_state_xyz)
     current_state_distance = torch.stack(current_state_distance)
+    label_list = torch.tensor(label_list, dtype=torch.float32)
     phi_list = np.stack(phi_list)
     psi_list = np.stack(psi_list)
-    label_list = torch.tensor(label_list, dtype=torch.float32)
     
     return current_state_xyz, current_state_distance, phi_list, psi_list, label_list
 
@@ -195,6 +192,8 @@ if __name__ == "__main__":
     
     # Check dataset directory
     save_dir = f"./dataset/{args.molecule}/{args.temperature}/{args.dataset_version}"
+    if not os.path.exists(f"{save_dir}"):
+        os.makedirs(f"{save_dir}")
     for name in ["xyz-aligned.pt", "distance.pt", "phi.npy", "psi.npy", "label.npy"]:
         if os.path.exists(f"{save_dir}/{name}"):
             print(f"{name} already exists at {save_dir}")

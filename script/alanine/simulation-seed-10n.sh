@@ -8,12 +8,12 @@ do
     --force_field amber99 \
     --solvent tip3p \
     --temperature 300 \
-    --time 1_000_000 \
+    --time 10_000_000 \
     --platform OpenCL \
     --precision mixed \
     --seed $seed \
     --log_stdout True \
-    --freq_stdout 10000 \
+    --freq_stdout 1000000 \
     --log_dcd True \
     --freq_dcd 100 \
     --log_csv True \
@@ -31,7 +31,7 @@ do
     --force_field amber99 \
     --solvent tip3p \
     --temperature 300 \
-    --time 1_000_000 \
+    --time 10_000_000 \
     --platform OpenCL \
     --precision mixed \
     --seed $seed \
