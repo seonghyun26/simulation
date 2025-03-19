@@ -1,12 +1,10 @@
 import os
 import json
 import torch
-import pprint
 import mdtraj
-import random
-import pandas
 
 import numpy as np
+import matplotlib.pyplot as plt
 
 from tqdm import tqdm
 
@@ -14,7 +12,7 @@ from openmm import *
 from openmm.app import *
 from openmm.unit import *
 
-from util.dataset_config import init_cl_dataset_args
+from util.dataset_config import init_dataset_args
 
 
 ALDP_PHI_ANGLE = [4, 6, 8, 14]
@@ -132,11 +130,9 @@ def compute_dihedral(
 
 
 def traj2dataset(
-    traj_list,
-    cfg_list,
+    traj_list
 ):
-    molecule = args.molecule
-    dataset_size = args.dataset_size
+    data_per_traj = args.data_per_traj
     number_of_traj = len(traj_list)
     current_state_xyz = []
     current_state_distance = []
@@ -148,18 +144,18 @@ def traj2dataset(
     time_lagged_state_psi = []
     reference_state_xyz = torch.tensor(traj_list[0][0].xyz.squeeze())
     
-    print(f"Sampling {dataset_size} frames from {number_of_traj} trajectories with {traj_list[0].n_frames} frames")
-    random_idx = np.random.choice(traj_list[0].n_frames - 2 - args.negative_sample_augmentation, dataset_size, replace=True)
+    print(f"Sampling {data_per_traj} frames from {number_of_traj} trajectories with {traj_list[0].n_frames} frames")
+    random_idx = np.random.choice(traj_list[0].n_frames - 2 - args.time_lag, data_per_traj, replace=True)
     for traj_idx in range(number_of_traj):
         for i in tqdm(
-            range(dataset_size),
+            range(data_per_traj),
             desc = f"Sampling frames from trajectory {traj_idx}"
         ):
             frame_idx = random_idx[i]
             current_frame = torch.tensor(traj_list[traj_idx][frame_idx].xyz.squeeze())
             current_state_xyz.append(kabsch(current_frame, reference_state_xyz))
             current_state_distance.append(coordinate2distance(current_frame))
-            time_lagged_frame = torch.tensor(traj_list[traj_idx][frame_idx + args.negative_sample_augmentation].xyz.squeeze())
+            time_lagged_frame = torch.tensor(traj_list[traj_idx][frame_idx + args.time_lag].xyz.squeeze())
             time_lagged_state_xyz.append(kabsch(time_lagged_frame, reference_state_xyz))
             time_lagged_state_distance.append(coordinate2distance(time_lagged_frame))
         
@@ -173,11 +169,13 @@ def traj2dataset(
     time_lagged_state_phi = compute_dihedral(time_lagged_state_xyz[:, ALDP_PHI_ANGLE])
     time_lagged_state_psi = compute_dihedral(time_lagged_state_xyz[:, ALDP_PSI_ANGLE])
     
+    
+    
     return current_state_xyz, current_state_distance, current_state_phi, current_state_psi, \
         time_lagged_state_xyz, time_lagged_state_distance, time_lagged_state_phi, time_lagged_state_psi
 
 
-args = init_cl_dataset_args()
+args = init_dataset_args()
 
 if __name__ == "__main__":
     traj_list = []
@@ -199,9 +197,7 @@ if __name__ == "__main__":
             state = config["state"]
         
         # Load topology file from pdb
-        if args.molecule == "alanine":
-            pdb_file = f"./data/{args.molecule}-stable/{state}.pdb"
-        elif args.molecule == "chignolin":
+        if args.molecule in ["alanine", "chignolin"]:
             pdb_file = f"./data/{args.molecule}/{state}.pdb"
         else:
             raise ValueError(f"Molecule {args.molecule} not found")
@@ -214,8 +210,8 @@ if __name__ == "__main__":
         traj_list.append(loaded_traj)
     
     # Check dataset directory
-    save_dir = f"../data/dataset/{args.molecule}/{args.temperature}/{args.dataset_version}"
-    for name in ["xyz-aligned.pt", "distance.pt", "phi.npy", "psi.npy", "label.npy"]:
+    save_dir = f"./dataset/{args.molecule}/{args.temperature}/{args.dataset_version}"
+    for name in ["xyz-aligned.pt", "distance.pt", "phi.npy", "psi.npy", "xyz-aligned-timelag.pt", "distance-timelag.pt", "phi-timelag.npy", "psi-timelag.npy"]:
         if os.path.exists(f"{save_dir}/{name}"):
             print(f"{name} already exists at {save_dir}")
             exit()
@@ -223,10 +219,7 @@ if __name__ == "__main__":
     # Create timelag dataset
     print("\n>> Building timelag Dataset...")
     current_state_xyz, current_state_distance, current_state_phi, current_state_psi, \
-    time_lagged_state_xyz, time_lagged_state_distance, time_lagged_state_phi, time_lagged_state_psi = traj2dataset(
-        traj_list,
-        cfg_list,
-    )
+    time_lagged_state_xyz, time_lagged_state_distance, time_lagged_state_phi, time_lagged_state_psi = traj2dataset(traj_list)
     
     check_and_save(dir = save_dir, name = "xyz-aligned.pt", data = current_state_xyz)
     check_and_save(dir = save_dir, name = "distance.pt", data = current_state_distance)
@@ -237,3 +230,18 @@ if __name__ == "__main__":
     check_and_save(dir = save_dir, name = "distance-timelag.pt", data = time_lagged_state_distance)
     check_and_save(dir = save_dir, name = "phi-timelag.npy", data = time_lagged_state_phi)
     check_and_save(dir = save_dir, name = "psi-timelag.npy", data = time_lagged_state_psi)
+
+    # Save configuration list
+    with open(f"{save_dir}/cfg_list.json", 'w') as f:
+        json.dump(cfg_list, f, indent=4)
+    print(f"Configuration list saved at {save_dir}/cfg_list.json")
+
+    # Create Ramachandran plot
+    plt.figure(figsize=(8, 8))
+    plt.scatter(current_state_phi, current_state_psi, c="blue", alpha=0.5)
+    plt.scatter(time_lagged_state_phi, time_lagged_state_psi, c="red", alpha=0.5)
+    plt.xlabel('Phi (radians)')
+    plt.ylabel('Psi (radians)')
+    plt.title('Ramachandran Plot')
+    plt.savefig(f"{save_dir}/ramachandran.png")
+    plt.close()

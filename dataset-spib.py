@@ -14,7 +14,7 @@ from openmm import *
 from openmm.app import *
 from openmm.unit import *
 
-from util.dataset_config import init_cl_dataset_args
+from util.dataset_config import init_dataset_args
 
 
 ALDP_PHI_ANGLE = [4, 6, 8, 14]
@@ -110,7 +110,7 @@ def traj2dataset(
     return dihedral_list, label_list
 
 
-args = init_cl_dataset_args()
+args = init_dataset_args()
 
 if __name__ == "__main__":
     traj_list = []

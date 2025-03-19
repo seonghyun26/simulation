@@ -5,7 +5,7 @@ import mdtraj as md
 import numpy as np
 
 from tqdm import tqdm
-from util.dataset_config import init_cl_dataset_args
+from util.dataset_config import init_dataset_args
 
 import mlcolvar
 import mlcolvar.graph as mg
@@ -48,7 +48,7 @@ def check_and_save(
         print(f"{name} dataset saved at {dir}")
 
 
-args = init_cl_dataset_args()
+args = init_dataset_args()
 
 if __name__ == "__main__":
     traj_list = []

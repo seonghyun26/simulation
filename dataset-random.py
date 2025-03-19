@@ -7,6 +7,7 @@ import random
 import pandas
 
 import numpy as np
+import matplotlib.pyplot as plt
 
 from tqdm import tqdm
 
@@ -14,7 +15,7 @@ from openmm import *
 from openmm.app import *
 from openmm.unit import *
 
-from util.dataset_config import init_cl_dataset_args
+from util.dataset_config import init_dataset_args
 
 
 ALDP_PHI_ANGLE = [4, 6, 8, 14]
@@ -106,7 +107,6 @@ def traj2dataset(
     traj_list,
     cfg_list,
 ):
-    molecule = args.molecule
     data_per_traj = args.data_per_traj
     number_of_traj = len(traj_list)
     current_state_xyz = []
@@ -131,7 +131,7 @@ def traj2dataset(
             psi = compute_dihedral(current_frame[ALDP_PSI_ANGLE].reshape(1, -1, 3))
             phi_list.append(phi)
             psi_list.append(psi)
-            label_list.append(1.0 if psi > 0 else 0.0)
+            label_list.append(1.0 if phi > 0 else 0.0)
         
     current_state_xyz = torch.stack(current_state_xyz)
     current_state_distance = torch.stack(current_state_distance)
@@ -160,7 +160,7 @@ def check_and_save(
             raise ValueError(f"Data type {type(data)} not supported")
         print(f"{name} dataset saved at {dir}")
 
-args = init_cl_dataset_args()
+args = init_dataset_args()
 
 if __name__ == "__main__":
     traj_list = []
@@ -211,3 +211,13 @@ if __name__ == "__main__":
     check_and_save(dir = save_dir, name = "phi.npy", data = phi_list)
     check_and_save(dir = save_dir, name = "psi.npy", data = psi_list)
     check_and_save(dir = save_dir, name = "label.pt", data = label_list)
+    
+    # Create Ramachandran plot
+    plt.figure(figsize=(8, 8))
+    colors = ['blue' if l == 0.0 else 'red' for l in label_list]
+    plt.scatter(phi_list, psi_list, c=colors, alpha=0.5)
+    plt.xlabel('Phi (radians)')
+    plt.ylabel('Psi (radians)')
+    plt.title('Ramachandran Plot')
+    plt.savefig(f"{save_dir}/ramachandran.png")
+    plt.close()

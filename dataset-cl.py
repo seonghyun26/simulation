@@ -17,7 +17,7 @@ from openmm.unit import *
 from torch.utils.data import Dataset
 
 from util.ic import load_ic_transform
-from util.dataset_config import init_cl_dataset_args
+from util.dataset_config import init_dataset_args
 
 
 
@@ -169,7 +169,7 @@ def compute_dihedral(
 	return angles
 
 
-args = init_cl_dataset_args()
+args = init_dataset_args()
 
 if __name__ == "__main__":
     traj_list = []

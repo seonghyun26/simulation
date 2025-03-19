@@ -18,9 +18,7 @@ from util.plot import *
 
 def init_args():
     parser = argparse.ArgumentParser(description="Simulation result")
-    
-    parser.add_argument("--path", type=str, help="Path to the simulation result file", default="log/alanine/300.0/test/test")
-    
+    parser.add_argument("--path", type=str, help="Path to the simulation result file", default="log/alanine/300.0/test")
     args = parser.parse_args()
     
     return args
@@ -44,10 +42,11 @@ if __name__ == "__main__":
     
     # Compute plots and values
     print(f">> Computing plots and values...")
-    fig_ramachandran = plot_ramachandran(traj, pdb_file, result_path)
-    chart_potential_energy = plot_potential_energy(df, result_path)
-    chart_total_energy = plot_total_energy(df, result_path)
-    chart_temperature = plot_temperature(df, result_path)
+    plot_log_dict = {}
+    plot_log_dict["ramachandran"], plot_log_dict["angle"] = wandb.Image(plot_ramachandran(traj, pdb_file, result_path)[0]), wandb.Image(plot_ramachandran(traj, pdb_file, result_path)[1])
+    plot_log_dict["potential_energy"] = wandb.Image(plot_potential_energy(df, result_path))
+    plot_log_dict["total_energy"] = wandb.Image(plot_total_energy(df, result_path))
+    plot_log_dict["temperature"] = wandb.Image(plot_temperature(df, result_path))
     
     # Log to wandb
     print(">> Logging...")
@@ -57,12 +56,7 @@ if __name__ == "__main__":
         name = f"{config['molecule']}_{config['state']}_{config['seed']}_{config['time'] / 1000000}ns",
         config = config
     )
-    wandb.log({
-        "ramachandran": wandb.Image(fig_ramachandran),
-        "potential_energy": wandb.Image(chart_potential_energy),
-        "total_energy": wandb.Image(chart_total_energy),
-        "temperature": wandb.Image(chart_temperature)
-    })
+    wandb.log(plot_log_dict)
     wandb.finish()
     
     print("Done!")
