@@ -149,7 +149,7 @@ def traj2dataset(
     time_lagged_state_phi = compute_dihedral(time_lagged_state_xyz[:, ALDP_PHI_ANGLE])
     time_lagged_state_psi = compute_dihedral(time_lagged_state_xyz[:, ALDP_PSI_ANGLE])
     
-    
+    # TODO: also add xyz normalization here
     
     return current_state_xyz, current_state_distance, current_state_phi, current_state_psi, \
         time_lagged_state_xyz, time_lagged_state_distance, time_lagged_state_phi, time_lagged_state_psi
@@ -167,7 +167,7 @@ if __name__ == "__main__":
     # Load trajectories
     for traj_dir in tqdm(
         args.traj_dir,
-        desc = "Loading trajecatory files"
+        desc = "Loading trajectory files"
     ):
         # Load configuration file
         dir = f"{simulation_dir}/{traj_dir}"
@@ -215,7 +215,7 @@ if __name__ == "__main__":
     check_and_save(dir = save_dir, name = "timelag-psi.npy", data = time_lagged_state_psi)
     
     label_by_phi = np.array([0 if phi < 0 else 1 for phi in current_state_phi])
-    check_and_save(dir = save_dir, name = "label.npy", data = label_by_phi)
+    check_and_save(dir = save_dir, name = "current-label.npy", data = label_by_phi)
     
     # Save configuration list
     with open(f"{save_dir}/cfg_list.json", 'w') as f:
