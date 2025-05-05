@@ -1,11 +1,10 @@
 cd ../../
 
-
-CUDA_VISIBLE_DEVICES=$1 python dataset-tbg.py \
+CUDA_VISIBLE_DEVICES=$1 python dataset-all.py \
     --molecule alanine \
     --temperature 300.0 \
     --data_per_traj 1000 \
-    --dataset_version tbg-10n-lag30 \
+    --dataset_version 10nano \
     --time_lag 10 \
     --traj_dir 10nano/c5-0 \
     --traj_dir 10nano/c5-1 \
