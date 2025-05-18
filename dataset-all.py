@@ -74,27 +74,34 @@ def coordinate2distance(
 
 def kabsch(
     P: torch.Tensor,
-    Q: torch.Tensor
+    Q: torch.Tensor,
 ) -> torch.Tensor:
+    '''
+        Kabsch algorithm for aligning two sets of points
+        Args:
+            P (torch.Tensor): Current positions (N, 3)
+            Q (torch.Tensor): Reference positions (N, 3)
+        Returns:
+            torch.Tensor: Aligned positions (N, 3)
+    '''
     centroid_P = torch.mean(P, dim=-2, keepdims=True)
     centroid_Q = torch.mean(Q, dim=-2, keepdims=True)
-    p = P - centroid_P
-    q = Q - centroid_Q
+    P_centered = P - centroid_P
+    Q_centered = Q - centroid_Q
 
     # Compute the covariance matrix
-    H = torch.matmul(p.transpose(-2, -1), q)
+    H = torch.matmul(P_centered.transpose(-2, -1), Q_centered)
     U, S, Vt = torch.linalg.svd(H)
-    
-    d = torch.det(torch.matmul(Vt.transpose(-2, -1), U.transpose(-2, -1)))  # B
+    d = torch.det(torch.matmul(Vt.transpose(-2, -1), U.transpose(-2, -1))) 
     Vt[d < 0.0, -1] *= -1.0
 
     # Optimal rotation and translation
     R = torch.matmul(Vt.transpose(-2, -1), U.transpose(-2, -1))
     t = centroid_Q - torch.matmul(centroid_P, R.transpose(-2, -1))
-
-    # Calculate RMSD
     P_aligned = torch.matmul(P, R.transpose(-2, -1)) + t
+    
     return P_aligned
+
 
 def compute_dihedral(
     positions: torch.Tensor
@@ -211,6 +218,7 @@ if __name__ == "__main__":
     current_state_distance = torch.stack(current_state_distance)
     current_state_phi = compute_dihedral(current_state_xyz[:, ALDP_PHI_ANGLE])
     current_state_psi = compute_dihedral(current_state_xyz[:, ALDP_PSI_ANGLE])
+    current_label = torch.from_numpy(np.array(current_state_phi > 0)).type(torch.float32)
     
     time_lagged_state_xyz = torch.stack(time_lagged_state_xyz)
     time_lagged_state_xyz_aligned = torch.stack(time_lagged_state_xyz_aligned)
@@ -223,6 +231,7 @@ if __name__ == "__main__":
     check_and_save(dir = save_dir, name = "current-distance.pt", data = current_state_distance)
     check_and_save(dir = save_dir, name = "current-phi.npy", data = current_state_phi)
     check_and_save(dir = save_dir, name = "current-psi.npy", data = current_state_psi)
+    check_and_save(dir = save_dir, name = "current-label.pt", data = current_label)
     
     check_and_save(dir = save_dir, name = "timelag-xyz.pt", data = time_lagged_state_xyz)
     check_and_save(dir = save_dir, name = "timelag-xyz-aligned.pt", data = time_lagged_state_xyz_aligned)
